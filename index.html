@@ -1,0 +1,1426 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>娱乐圈经纪人模拟器</title>
+  <style>
+    :root {
+      --cyan: #a4d7eb;
+      --lavender: #cac2ff;
+      --gold: #f7d27a;
+      --hot: #ff8d9f;
+      --danger: #ff6a72;
+      --ok: #7ee0c4;
+      --ink: #f5f8ff;
+      --muted: rgba(245, 248, 255, .68);
+      --panel: rgba(20, 24, 45, .58);
+      --panel-strong: rgba(16, 18, 38, .78);
+      --line: rgba(202, 194, 255, .35);
+      --glow: 0 0 22px rgba(164, 215, 235, .26), 0 0 40px rgba(202, 194, 255, .18);
+      --radius: 18px;
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100svh;
+      color: var(--ink);
+      background:
+        linear-gradient(120deg, rgba(8, 12, 30, .82), rgba(33, 20, 58, .72)),
+        url("https://s1.imagehub.cc/images/2025/05/13/59f01480f11cb2c8bed41cba0cdd1b9d.jpg") center / cover fixed;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 22% 10%, rgba(164, 215, 235, .22), transparent 28%),
+        radial-gradient(circle at 78% 18%, rgba(202, 194, 255, .2), transparent 30%),
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: auto, auto, 38px 38px, 38px 38px;
+      mix-blend-mode: screen;
+    }
+
+    button, input, select { font: inherit; }
+
+    button {
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 999px;
+      color: var(--ink);
+      background: linear-gradient(135deg, rgba(164,215,235,.22), rgba(202,194,255,.2));
+      box-shadow: 0 0 0 transparent;
+      min-height: 38px;
+      padding: 9px 15px;
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease, opacity .18s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(164,215,235,.76);
+      box-shadow: var(--glow);
+    }
+
+    button:active { transform: translateY(1px) scale(.99); }
+    button:disabled { opacity: .42; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    input, select {
+      width: 100%;
+      color: var(--ink);
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 14px;
+      padding: 12px 14px;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(164,215,235,.14);
+    }
+
+    .hidden { display: none !important; }
+
+    .screen {
+      position: relative;
+      min-height: 100svh;
+      padding: 22px;
+      animation: rise .55s ease both;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .glass {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--glow);
+      backdrop-filter: blur(18px);
+    }
+
+    .start {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .start-inner {
+      width: min(1040px, 100%);
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 26px;
+      align-items: stretch;
+    }
+
+    .poster {
+      min-height: 610px;
+      padding: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .poster::after {
+      content: "";
+      position: absolute;
+      inset: auto -6% -10% -6%;
+      height: 220px;
+      background: linear-gradient(90deg, rgba(164,215,235,.16), rgba(202,194,255,.24), rgba(247,210,122,.1));
+      filter: blur(22px);
+      transform: rotate(-3deg);
+    }
+
+    .eyebrow {
+      color: var(--cyan);
+      letter-spacing: .12em;
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 { margin: 0; letter-spacing: 0; }
+
+    h1 {
+      margin-top: 18px;
+      font-size: clamp(46px, 7vw, 90px);
+      line-height: .98;
+      text-shadow: 0 0 28px rgba(202,194,255,.35);
+    }
+
+    .lead {
+      margin: 20px 0 0;
+      max-width: 580px;
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 17px;
+    }
+
+    .start-form {
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .form-row { display: grid; gap: 8px; }
+    .form-row label { color: var(--muted); font-size: 13px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .primary {
+      color: #10162c;
+      background: linear-gradient(135deg, var(--cyan), var(--lavender));
+      border-color: rgba(255,255,255,.56);
+      font-weight: 800;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
+      max-width: 1680px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(210px, 1fr) repeat(5, minmax(120px, .7fr)) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+    }
+
+    .metric {
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      min-width: 0;
+    }
+
+    .metric .label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .metric strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 18px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 315px minmax(420px, 1fr) 350px;
+      gap: 16px;
+      min-height: calc(100svh - 118px);
+    }
+
+    .panel {
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .panel-title h2, .panel-title h3 { font-size: 18px; }
+    .subtle { color: var(--muted); font-size: 13px; }
+
+    .profile {
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .avatar {
+      width: 76px;
+      height: 76px;
+      border-radius: 20px;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,.42);
+      box-shadow: 0 0 22px rgba(164,215,235,.25);
+      background: rgba(255,255,255,.08);
+    }
+
+    .artist-card {
+      display: grid;
+      grid-template-columns: 54px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.055);
+      border: 1px solid rgba(255,255,255,.11);
+      margin-bottom: 9px;
+      cursor: pointer;
+      transition: border-color .18s ease, background .18s ease, transform .18s ease;
+    }
+
+    .artist-card:hover, .artist-card.active {
+      background: rgba(164,215,235,.12);
+      border-color: rgba(164,215,235,.54);
+      transform: translateX(2px);
+    }
+
+    .artist-card img {
+      width: 54px;
+      height: 54px;
+      border-radius: 15px;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,.3);
+    }
+
+    .badge, .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.86);
+      white-space: nowrap;
+    }
+
+    .badge.gold { color: #2c230c; background: linear-gradient(135deg, #ffe5a3, #f2be51); }
+    .tag.hot { border-color: rgba(255,141,159,.44); color: #ffd7de; }
+    .tag.danger { border-color: rgba(255,106,114,.55); color: #ffc4c8; }
+    .tag.ok { border-color: rgba(126,224,196,.45); color: #c8ffef; }
+
+    .main-stage {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 16px;
+    }
+
+    .event {
+      min-height: 235px;
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .event::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(164,215,235,.1), rgba(202,194,255,.1), transparent 55%);
+      pointer-events: none;
+    }
+
+    .event h2 {
+      position: relative;
+      font-size: 27px;
+      margin-bottom: 10px;
+    }
+
+    .event p {
+      position: relative;
+      color: rgba(245,248,255,.8);
+      line-height: 1.8;
+      margin: 0 0 18px;
+    }
+
+    .choice-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .choice {
+      border-radius: 16px;
+      padding: 13px;
+      min-height: 76px;
+      text-align: left;
+      background: rgba(255,255,255,.08);
+    }
+
+    .choice strong { display: block; margin-bottom: 4px; }
+    .choice span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 10px;
+    }
+
+    .tab.active {
+      color: #10162c;
+      background: linear-gradient(135deg, var(--cyan), var(--lavender));
+      border-color: transparent;
+      font-weight: 800;
+    }
+
+    .workspace {
+      padding: 16px;
+      min-height: 300px;
+      overflow: auto;
+      max-height: calc(100svh - 470px);
+    }
+
+    .grid-two {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .mini-card {
+      border-radius: 16px;
+      padding: 13px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+    }
+
+    .mini-card h3 { font-size: 16px; margin-bottom: 7px; }
+    .mini-card p { color: var(--muted); line-height: 1.7; margin: 4px 0 10px; font-size: 13px; }
+
+    .bar {
+      height: 9px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.1);
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      width: var(--v);
+      background: linear-gradient(90deg, var(--cyan), var(--lavender));
+      box-shadow: 0 0 14px rgba(164,215,235,.45);
+    }
+
+    .bar.danger i { background: linear-gradient(90deg, #ffb36d, var(--danger)); }
+    .stat-list { display: grid; gap: 9px; }
+    .stat-row { display: grid; grid-template-columns: 84px 1fr 36px; gap: 9px; align-items: center; font-size: 13px; color: var(--muted); }
+
+    .right-stack {
+      display: grid;
+      gap: 16px;
+      grid-template-rows: auto auto 1fr;
+    }
+
+    .ticker {
+      display: grid;
+      gap: 8px;
+      max-height: 180px;
+      overflow: auto;
+    }
+
+    .ticker-item {
+      padding: 9px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.055);
+      border: 1px solid rgba(255,255,255,.1);
+      color: rgba(245,248,255,.8);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .log {
+      max-height: 330px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .log-entry {
+      padding: 9px 10px;
+      border-left: 3px solid var(--cyan);
+      border-radius: 10px;
+      background: rgba(255,255,255,.055);
+      color: rgba(245,248,255,.78);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 20;
+      background: rgba(5, 7, 18, .66);
+      padding: 22px;
+    }
+
+    .modal-box {
+      width: min(860px, 100%);
+      max-height: 86svh;
+      overflow: auto;
+      padding: 22px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%) translateY(20px);
+      opacity: 0;
+      z-index: 30;
+      padding: 12px 16px;
+      border-radius: 999px;
+      background: rgba(10, 15, 34, .86);
+      border: 1px solid rgba(164,215,235,.5);
+      box-shadow: var(--glow);
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .warn {
+      border-color: rgba(255,106,114,.48);
+      background: rgba(255,106,114,.12);
+      color: #ffd4d7;
+    }
+
+    .empty {
+      padding: 26px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed rgba(255,255,255,.2);
+      border-radius: 16px;
+    }
+
+    @media (max-width: 1180px) {
+      .topbar { grid-template-columns: repeat(3, 1fr); }
+      .layout { grid-template-columns: 280px 1fr; }
+      .right-stack { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 820px) {
+      .screen { padding: 12px; }
+      .start-inner, .layout, .grid-two, .choice-grid, .right-stack { grid-template-columns: 1fr; }
+      .poster { min-height: 440px; padding: 28px; }
+      .topbar { grid-template-columns: repeat(2, 1fr); }
+      .workspace { max-height: none; }
+      .layout { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main id="startScreen" class="screen start">
+    <section class="start-inner">
+      <div class="poster glass">
+        <div>
+          <div class="eyebrow">NEON TALENT AGENCY</div>
+          <h1>娱乐圈经纪人模拟器</h1>
+          <p class="lead">你将以第一人称管理艺人、争夺资源、压住热搜、对抗竞品公司。每个时段都会结算，压力、人脉、资金与口碑都会留下痕迹。</p>
+        </div>
+        <div class="actions">
+          <span class="tag ok">四段时段推进</span>
+          <span class="tag hot">舆情与危机</span>
+          <span class="tag">本地自动存档</span>
+        </div>
+      </div>
+      <form id="startForm" class="start-form glass">
+        <div class="panel-title">
+          <h2>初始化游戏</h2>
+          <span id="saveHint" class="subtle">未检测到存档</span>
+        </div>
+        <div class="profile">
+          <img class="avatar" alt="主控头像" src="https://s1.imagehub.cc/images/2025/05/08/46ffd416a2c135f6274369b34082113c.jpg">
+          <div>
+            <h3>新锐经纪人</h3>
+            <div class="subtle">从晨间会议开始，带着三名初始艺人杀入排位。</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="playerName">主控姓名</label>
+          <input id="playerName" maxlength="12" value="林希" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label for="agencyName">工作室名称</label>
+          <input id="agencyName" maxlength="14" value="极光艺能" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label for="stylePick">开局风格</label>
+          <select id="stylePick">
+            <option value="pr">公关控场：公关与媒体敏感更高</option>
+            <option value="deal">资源谈判：谈判与人脉更高</option>
+            <option value="law">底线法务：法务与道德更高</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button class="primary" type="submit">开始新档</button>
+          <button id="continueBtn" type="button">继续存档</button>
+          <button id="wipeBtn" type="button">清除存档</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <main id="gameScreen" class="screen app hidden">
+    <header class="topbar glass">
+      <div class="metric"><span class="label">日期 / 时段</span><strong id="dateText">第 1 天 晨间会议</strong></div>
+      <div class="metric"><span class="label">资金</span><strong id="moneyText">0 万</strong></div>
+      <div class="metric"><span class="label">压力</span><strong id="stressText">0</strong></div>
+      <div class="metric"><span class="label">道德值</span><strong id="moraleText">0</strong></div>
+      <div class="metric"><span class="label">人脉值</span><strong id="networkText">0</strong></div>
+      <div class="metric"><span class="label">行业影响</span><strong id="influenceText">0</strong></div>
+      <div class="actions">
+        <button id="saveBtn">手动存档</button>
+        <button id="restartBtn">重开</button>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="panel glass">
+        <div class="panel-title">
+          <h2>主控资料</h2>
+          <span id="debuffTag" class="tag">状态稳定</span>
+        </div>
+        <div class="profile">
+          <img class="avatar" alt="主控头像" src="https://s1.imagehub.cc/images/2025/05/08/46ffd416a2c135f6274369b34082113c.jpg">
+          <div>
+            <h3 id="playerTitle">林希</h3>
+            <div id="agencyTitle" class="subtle">极光艺能 · 新锐经纪人</div>
+          </div>
+        </div>
+        <div id="playerStats" class="stat-list"></div>
+        <div class="panel-title" style="margin-top:18px">
+          <h2>旗下艺人</h2>
+          <span id="artistCount" class="subtle">0 人</span>
+        </div>
+        <div id="ownedArtists"></div>
+      </aside>
+
+      <section class="main-stage">
+        <div id="eventCard" class="event glass"></div>
+        <nav class="tabs glass">
+          <button class="tab active" data-tab="todo">待办</button>
+          <button class="tab" data-tab="artists">艺人详情</button>
+          <button class="tab" data-tab="resources">资源池</button>
+          <button class="tab" data-tab="crisis">危机公关</button>
+          <button class="tab" data-tab="market">签约市场</button>
+        </nav>
+        <div id="workspace" class="workspace glass"></div>
+      </section>
+
+      <aside class="right-stack">
+        <section class="panel glass">
+          <div class="panel-title"><h2>舆情动态</h2><span id="riskBadge" class="tag">低风险</span></div>
+          <div id="newsFeed" class="ticker"></div>
+        </section>
+        <section class="panel glass">
+          <div class="panel-title"><h2>竞品动态</h2><span class="tag hot">AI 行动</span></div>
+          <div id="rivalFeed" class="ticker"></div>
+        </section>
+        <section class="panel glass">
+          <div class="panel-title"><h2>日志记录</h2><button id="logBtn">查看日志</button></div>
+          <div id="logFeed" class="log"></div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hidden"></div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const SAVE_KEY = "neon_agent_simulator_save_v1";
+    const timeSlots = ["晨间会议", "白天工作", "黄金时段", "午夜攻坚"];
+    const mainAvatar = "https://s1.imagehub.cc/images/2025/05/08/46ffd416a2c135f6274369b34082113c.jpg";
+    const routes = ["影视演员", "唱跳偶像", "综艺新星", "时尚宠儿", "全能艺人"];
+    const resourceTypes = ["影视", "综艺", "代言", "杂志", "商务"];
+
+    const state = {
+      game: null,
+      selectedArtistId: null,
+      currentTab: "todo",
+      currentEvent: null
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const clamp = (n, min = 0, max = 100) => Math.max(min, Math.min(max, Math.round(n)));
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const uid = (prefix) => `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
+
+    function svgAvatar(name, gender, index) {
+      const palette = gender === "女"
+        ? [["#CAC2FF", "#A4D7EB", "#FFB7D5"], ["#FFD6E7", "#9FE4FF", "#D9C6FF"], ["#B8F3FF", "#F2C6FF", "#FFF0A3"]]
+        : [["#9AD7FF", "#CAC2FF", "#6BE5C7"], ["#C8DDFF", "#B8A8FF", "#F0D186"], ["#A4D7EB", "#90B5FF", "#F6C77A"]];
+      const p = palette[index % palette.length];
+      const text = name.slice(-1);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${p[0]}"/><stop offset=".55" stop-color="${p[1]}"/><stop offset="1" stop-color="${p[2]}"/></linearGradient></defs>
+        <rect width="180" height="180" rx="34" fill="#11152e"/><circle cx="132" cy="42" r="52" fill="url(#g)" opacity=".58"/>
+        <circle cx="85" cy="72" r="33" fill="url(#g)"/><path d="M35 156c7-38 29-57 50-57s43 19 50 57" fill="url(#g)" opacity=".9"/>
+        <text x="90" y="114" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" font-weight="800" fill="#fff">${text}</text>
+      </svg>`;
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    }
+
+    const templates = [
+      ["沈星然", "女", "影视演员", "A", {acting:76, vocal:48, dance:42, variety:58, fashion:66, business:62}],
+      ["许闻舟", "男", "唱跳偶像", "B", {acting:45, vocal:71, dance:78, variety:58, fashion:62, business:56}],
+      ["周弥", "女", "综艺新星", "B", {acting:54, vocal:53, dance:49, variety:82, fashion:58, business:61}],
+      ["陆景珩", "男", "时尚宠儿", "A", {acting:63, vocal:45, dance:57, variety:52, fashion:86, business:69}],
+      ["白栀", "女", "全能艺人", "S", {acting:74, vocal:70, dance:68, variety:66, fashion:73, business:72}],
+      ["秦予安", "男", "影视演员", "B", {acting:69, vocal:42, dance:46, variety:55, fashion:57, business:53}],
+      ["唐念", "女", "唱跳偶像", "C", {acting:42, vocal:66, dance:72, variety:59, fashion:60, business:49}],
+      ["纪川", "男", "综艺新星", "B", {acting:56, vocal:48, dance:52, variety:80, fashion:54, business:60}],
+      ["宁雪仪", "女", "时尚宠儿", "A", {acting:61, vocal:55, dance:51, variety:58, fashion:83, business:70}],
+      ["程洛", "男", "全能艺人", "S", {acting:77, vocal:71, dance:70, variety:73, fashion:68, business:75}],
+      ["夏知微", "女", "影视演员", "C", {acting:64, vocal:44, dance:45, variety:50, fashion:59, business:48}],
+      ["顾承野", "男", "商务新贵", "B", {acting:51, vocal:45, dance:43, variety:57, fashion:65, business:84}]
+    ];
+
+    function makeArtist(row, index, owned = false, rival = null) {
+      const [name, gender, route, rating, stats] = row;
+      return {
+        id: uid("artist"),
+        name, gender, route, rating,
+        avatar: svgAvatar(name, gender, index),
+        owner: owned ? "player" : rival,
+        fame: rating === "S" ? 70 : rating === "A" ? 58 : rating === "B" ? 43 : 30,
+        stats: {...stats},
+        project: owned ? pick(["短剧试镜", "综艺飞行", "杂志拍摄"]) : pick(["竞品培养", "待签约观察", "平台面谈"]),
+        contract: owned ? "剩余 18 个月" : "可洽谈",
+        health: clamp(76 + Math.random() * 18),
+        stress: clamp(24 + Math.random() * 24),
+        trust: owned ? clamp(52 + Math.random() * 22) : clamp(30 + Math.random() * 20),
+        scandal: clamp(Math.random() * 26),
+        fans: clamp(42 + Math.random() * 35),
+        reputation: clamp(46 + Math.random() * 35),
+        risk: pick(["旧采访争议", "健康波动", "恋情传闻", "档期冲突", "粉圈内耗", "税务需复核"]),
+        hiddenUnlocked: false
+      };
+    }
+
+    function createGame(name, agency, style) {
+      const rivals = ["星河传媒", "盛唐娱乐", "蓝鲸影业", "月环文化", "棱镜偶像"].map((name, i) => ({
+        id: uid("rival"), name, influence: 45 + i * 6, aggression: 35 + i * 7, resources: 45 + i * 5, mood: "观望"
+      }));
+      const artists = templates.map((row, i) => makeArtist(row, i, i < 3, i < 3 ? null : rivals[(i - 3) % rivals.length].id));
+      const player = {
+        name, agency, avatar: mainAvatar, career: "新锐经纪人",
+        money: 320, stress: 28, morale: style === "law" ? 72 : 60, network: style === "deal" ? 68 : 52,
+        insight: style === "deal" ? 58 : 50, negotiation: style === "deal" ? 70 : 54,
+        pr: style === "pr" ? 72 : 54, networkSkill: style === "deal" ? 66 : 52,
+        legal: style === "law" ? 70 : 48, influence: 35,
+        trustSense: 45, mediaSense: style === "pr" ? 68 : 48
+      };
+      return {
+        version: 1,
+        day: 1,
+        slotIndex: 0,
+        player,
+        artists,
+        rivals,
+        resources: generateResources(1, player),
+        news: ["晨间简报：平台本周偏爱都市剧与熟人综艺，时尚刊资源释放两个窗口。"],
+        rivalNews: ["竞品雷达：五家公司均在观察新人池，暂无正面冲突。"],
+        logs: ["第 1 天 08:00，新档开启。你接手三名初始艺人，工作室进入试运营。"],
+        crisis: [],
+        rank: [],
+        lastAction: "等待晨间决策",
+        seed: Date.now()
+      };
+    }
+
+    function generateResources(day, player) {
+      const names = {
+        "影视": ["都市剧女二试镜", "悬浮剧配角救场", "平台短剧主角", "电影新人单元"],
+        "综艺": ["观察类飞行嘉宾", "棚综常驻竞选", "音综合作舞台", "旅行慢综艺"],
+        "代言": ["轻奢香氛短约", "运动饮料区域代言", "彩妆新品站台", "手机品牌直播"],
+        "杂志": ["电子刊封面", "银十内页", "新锐大片", "年度专题采访"],
+        "商务": ["品牌晚宴", "平台招商会", "直播带货专场", "城市活动大使"]
+      };
+      return resourceTypes.map((type, i) => {
+        const level = pick(["C", "B", "A", day > 8 ? "S" : "B"]);
+        const base = level === "S" ? 78 : level === "A" ? 64 : level === "B" ? 50 : 36;
+        return {
+          id: uid("res"),
+          type,
+          name: pick(names[type]),
+          level,
+          threshold: base,
+          reward: base + 20 + Math.floor(Math.random() * 28),
+          risk: clamp(base / 2 + Math.random() * 26),
+          competition: clamp(38 + Math.random() * 42 + day * 1.5),
+          fit: pick(routes),
+          used: false
+        };
+      });
+    }
+
+    function getOwned() {
+      return state.game.artists.filter(a => a.owner === "player");
+    }
+
+    function selectedArtist() {
+      return state.game.artists.find(a => a.id === state.selectedArtistId) || getOwned()[0];
+    }
+
+    function saveGame(show = false) {
+      if (!state.game) return;
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state.game));
+      if (show) toast("已保存到本地");
+    }
+
+    function loadGame() {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch { return null; }
+    }
+
+    function addLog(text) {
+      const g = state.game;
+      const time = `第 ${g.day} 天 ${timeSlots[g.slotIndex]}`;
+      g.logs.unshift(`${time}：${text}`);
+      g.logs = g.logs.slice(0, 80);
+    }
+
+    function toast(text) {
+      $("toast").textContent = text;
+      $("toast").classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => $("toast").classList.remove("show"), 1800);
+    }
+
+    function applyPlayer(delta) {
+      const p = state.game.player;
+      Object.entries(delta).forEach(([key, value]) => {
+        if (key === "money") p.money = Math.max(0, Math.round(p.money + value));
+        else p[key] = clamp((p[key] || 0) + value, 0, 100);
+      });
+    }
+
+    function applyArtist(artist, delta) {
+      Object.entries(delta).forEach(([key, value]) => {
+        if (artist.stats[key] !== undefined) artist.stats[key] = clamp(artist.stats[key] + value);
+        else artist[key] = clamp((artist[key] || 0) + value);
+      });
+    }
+
+    function stageName(value) {
+      if (value >= 85) return "王牌";
+      if (value >= 70) return "成熟";
+      if (value >= 55) return "可用";
+      if (value >= 40) return "起步";
+      return "薄弱";
+    }
+
+    function riskLevel() {
+      const g = state.game;
+      const avgScandal = getOwned().reduce((sum, a) => sum + a.scandal, 0) / Math.max(1, getOwned().length);
+      return clamp(avgScandal * .55 + g.player.stress * .35 + g.crisis.length * 12);
+    }
+
+    function setEvent(event) {
+      state.currentEvent = event;
+      renderEvent();
+    }
+
+    function buildIdleEvent() {
+      const g = state.game;
+      const slot = timeSlots[g.slotIndex];
+      const artist = selectedArtist();
+      if (slot === "晨间会议") {
+        return {
+          title: "晨间简报",
+          desc: `${artist.name} 今日重点是「${artist.project}」。资源池已更新，竞品公司会在白天开始动作。你需要先决定工作室的重心。`,
+          choices: [
+            {title:"压低风险", desc:"复核舆情与合规，换取稳定。", action: () => resolveChoice("完成晨间风险复核", {player:{legal:3, pr:2, stress:3, morale:1}, artist:{scandal:-6, trust:2}})},
+            {title:"冲刺资源", desc:"提前联络平台与品牌方。", action: () => resolveChoice("提前铺资源线", {player:{network:4, negotiation:3, stress:5, money:-12}, artist:{fame:2, stress:2}})},
+            {title:"艺人沟通", desc:"安抚团队情绪，提高信任。", action: () => resolveChoice("完成一对一沟通", {player:{stress:-3, trustSense:3}, artist:{trust:7, stress:-5, health:2}})},
+            {title:"推进时段", desc:"结束当前时段并结算。", action: nextSlot}
+          ]
+        };
+      }
+      return randomEvent();
+    }
+
+    function randomEvent() {
+      const artist = selectedArtist();
+      const pool = [
+        {
+          title: "资源窗口临时打开",
+          desc: `平台制片临时询问 ${artist.name} 的档期，但竞品也在报价。你的谈判、艺人适配度与舆情都会影响结果。`,
+          choices: [
+            {title:"强势竞价", desc:"花钱压档期，争取直接锁定。", action: () => competeForBestResource(artist, true)},
+            {title:"用人脉换机会", desc:"请熟人递话，成本较低但看脸。", action: () => competeForBestResource(artist, false)},
+            {title:"暂不冒进", desc:"保存体力，降低艺人压力。", action: () => resolveChoice("放弃临时窗口，团队转入蓄力", {player:{stress:-4, morale:1}, artist:{stress:-6, health:3, trust:2}})},
+            {title:"推进时段", desc:"跳过此事件。", action: nextSlot}
+          ]
+        },
+        {
+          title: "黑热搜苗头",
+          desc: `${artist.name} 的旧物料被营销号剪辑，负面词条正在发酵。若处理不当，黑料值与粉丝对立都会上升。`,
+          choices: [
+            {title:"证据收集", desc:"先查来源，适合法务高的路线。", action: () => startCrisis(artist, "黑热搜", "evidence")},
+            {title:"温和通稿", desc:"降低对立，消耗公关预算。", action: () => startCrisis(artist, "黑热搜", "soft")},
+            {title:"冷处理", desc:"省钱但风险不受控。", action: () => resolveChoice("选择冷处理，热度短暂下降但暗线仍在", {player:{money:0, stress:5, pr:-1}, artist:{scandal:8, fans:-3, trust:-2}})},
+            {title:"推进时段", desc:"稍后再处理。", action: nextSlot}
+          ]
+        },
+        {
+          title: "行业酒会邀请",
+          desc: `今晚有品牌、平台和杂志编辑出席。参加能涨人脉，也可能让压力与道德选择同时摆上桌。`,
+          choices: [
+            {title:"带艺人露面", desc:"曝光更高，也更容易被比较。", action: () => resolveChoice("带艺人参加酒会，拿到两条潜在线索", {player:{network:6, influence:3, stress:5, morale:-2}, artist:{fame:4, fashion:3, stress:5}})},
+            {title:"独自社交", desc:"稳妥积累人脉，艺人压力不变。", action: () => resolveChoice("独自参加酒会，稳住品牌关系", {player:{network:5, negotiation:2, stress:4, money:-8}, artist:{trust:1}})},
+            {title:"拒绝应酬", desc:"保住底线和休息。", action: () => resolveChoice("拒绝酒会，把时间留给团队复盘", {player:{morale:4, stress:-6, network:-2}, artist:{health:3, trust:3}})},
+            {title:"推进时段", desc:"结束当前时段。", action: nextSlot}
+          ]
+        },
+        {
+          title: "训练档期空出",
+          desc: `${artist.name} 有半天窗口可以补课。不同训练会改变后续资源适配与竞争胜率。`,
+          choices: [
+            {title:"表演课", desc:"提升影视竞争力。", action: () => trainArtist(artist, "acting")},
+            {title:"综艺反应", desc:"提升综艺与公关容错。", action: () => trainArtist(artist, "variety")},
+            {title:"体能恢复", desc:"降低压力与健康风险。", action: () => resolveChoice("安排体能恢复，团队状态回稳", {player:{money:-8, stress:-2}, artist:{health:8, stress:-8, trust:2}})},
+            {title:"推进时段", desc:"保留预算。", action: nextSlot}
+          ]
+        }
+      ];
+      return pick(pool);
+    }
+
+    function resolveChoice(summary, effects) {
+      const artist = selectedArtist();
+      if (effects.player) applyPlayer(effects.player);
+      if (effects.artist) applyArtist(artist, effects.artist);
+      state.game.lastAction = summary;
+      addLog(summary);
+      maybeTriggerPressureSlip();
+      dailyDecay();
+      saveGame();
+      renderAll();
+      setEvent({title:"结算完成", desc:`${summary}。状态已更新，你可以继续处理待办或推进到下一时段。`, choices:[
+        {title:"推进时段", desc:"结算当前时段并进入下一段。", action: nextSlot},
+        {title:"继续查看", desc:"留在当前页面检查状态。", action: () => toast("已停留在当前时段")}
+      ]});
+    }
+
+    function trainArtist(artist, stat) {
+      const cost = 16;
+      if (state.game.player.money < cost) return toast("资金不足，无法安排训练");
+      const names = {acting:"表演课", variety:"综艺反应"};
+      resolveChoice(`为 ${artist.name} 安排${names[stat]}`, {
+        player: {money: -cost, stress: 3, insight: 1},
+        artist: {[stat]: 7, stress: 5, trust: 2, health: -2}
+      });
+    }
+
+    function competeForBestResource(artist, spend) {
+      const resource = state.game.resources.find(r => !r.used) || generateResources(state.game.day, state.game.player)[0];
+      applyResource(artist.id, resource.id, spend);
+    }
+
+    function applyResource(artistId, resourceId, spend = false) {
+      const g = state.game;
+      const artist = g.artists.find(a => a.id === artistId);
+      const resource = g.resources.find(r => r.id === resourceId);
+      if (!artist || !resource || resource.used) return;
+      if (spend && g.player.money < 28) return toast("资金不足，无法强势竞价");
+      const fit = artist.route === resource.fit ? 14 : 0;
+      const attrMap = {影视:"acting", 综艺:"variety", 代言:"business", 杂志:"fashion", 商务:"business"};
+      const attr = artist.stats[attrMap[resource.type]] || 50;
+      const score = attr * .38 + artist.fame * .18 + artist.reputation * .15 + g.player.negotiation * .18 + g.player.network * .11 + fit - artist.scandal * .22 - resource.competition * .18 + (spend ? 18 : 0) - pressurePenalty();
+      const success = score >= resource.threshold - 8;
+      resource.used = true;
+      if (spend) applyPlayer({money:-28, stress:4});
+      if (success) {
+        applyPlayer({money: Math.round(resource.reward * .75), influence: 4, network: 2, stress: 4});
+        applyArtist(artist, {fame: 6, reputation: 4, fans: 5, stress: 6});
+        artist.project = resource.name;
+        g.news.unshift(`热搜上升：${artist.name} 拿下「${resource.name}」，粉丝开始控评庆祝。`);
+        addLog(`${artist.name} 成功争取 ${resource.level} 级${resource.type}资源「${resource.name}」`);
+      } else {
+        applyPlayer({stress: 6, negotiation: 1, money: -8});
+        applyArtist(artist, {stress: 7, trust: -3, scandal: 3});
+        g.rivalNews.unshift(`竞品抢单：${resource.name} 被其他公司截走，平台反馈你方报价与舆情不够稳。`);
+        addLog(`${artist.name} 争取「${resource.name}」失败，竞品截走资源`);
+      }
+      saveGame();
+      renderAll();
+      setEvent({title: success ? "资源拿下" : "资源失手", desc: success ? `${artist.name} 的新项目已进入档案。高曝光也会带来额外压力。` : `这次失手暴露了谈判与舆情短板。竞品正在放大这次失败。`, choices:[
+        {title:"查看资源池", desc:"检查剩余窗口。", action: () => switchTab("resources")},
+        {title:"推进时段", desc:"进入下一段。", action: nextSlot}
+      ]});
+    }
+
+    function startCrisis(artist, type, route) {
+      const g = state.game;
+      const crisis = {
+        id: uid("crisis"), artistId: artist.id, type,
+        stage: route === "evidence" ? "证据收集" : "通稿定调",
+        countdown: 3,
+        heat: clamp(45 + artist.scandal * .5 + Math.random() * 24)
+      };
+      g.crisis.push(crisis);
+      const effects = route === "evidence"
+        ? {player:{legal:3, stress:5, money:-10}, artist:{trust:2, scandal:-2}}
+        : {player:{pr:3, stress:4, money:-18}, artist:{scandal:-4, fans:2, stress:3}};
+      resolveChoice(`启动 ${artist.name} 的${type}危机处理：${crisis.stage}`, effects);
+      switchTab("crisis");
+    }
+
+    function handleCrisis(id, mode) {
+      const g = state.game;
+      const crisis = g.crisis.find(c => c.id === id);
+      if (!crisis) return;
+      const artist = g.artists.find(a => a.id === crisis.artistId);
+      const p = g.player;
+      const modeCost = mode === "law" ? 22 : mode === "media" ? 18 : 10;
+      if (p.money < modeCost) return toast("资金不足，无法执行该方案");
+      const power = (mode === "law" ? p.legal : mode === "media" ? p.pr + p.mediaSense * .45 : p.network + p.pr * .35) + artist.trust * .15 - pressurePenalty();
+      const success = power > crisis.heat * .72;
+      applyPlayer({money:-modeCost, stress: success ? 5 : 9, pr: mode === "media" ? 2 : 0, legal: mode === "law" ? 2 : 0, network: mode === "fans" ? 2 : 0});
+      if (success) {
+        applyArtist(artist, {scandal:-14, reputation:5, fans: mode === "fans" ? 7 : 3, trust:4, stress:-2});
+        g.news.unshift(`危机降温：${artist.name} 的${crisis.type}词条下降，核心粉丝恢复秩序。`);
+        g.crisis = g.crisis.filter(c => c.id !== id);
+        addLog(`成功处理 ${artist.name} 的${crisis.type}危机`);
+      } else {
+        crisis.heat = clamp(crisis.heat + 12);
+        crisis.countdown -= 1;
+        applyArtist(artist, {scandal:10, reputation:-5, fans:-6, stress:7, trust:-3});
+        g.news.unshift(`危机升温：${artist.name} 的${crisis.type}出现二次扩散，倒计时剩余 ${crisis.countdown}。`);
+        addLog(`${artist.name} 的${crisis.type}处理不利，热度上升`);
+        if (crisis.countdown <= 0) {
+          g.crisis = g.crisis.filter(c => c.id !== id);
+          applyPlayer({influence:-6, morale:-4});
+          addLog(`${artist.name} 的${crisis.type}造成长期口碑损失`);
+        }
+      }
+      saveGame();
+      renderAll();
+    }
+
+    function pressurePenalty() {
+      const stress = state.game.player.stress;
+      return stress > 80 ? 16 : stress > 65 ? 8 : stress > 50 ? 3 : 0;
+    }
+
+    function maybeTriggerPressureSlip() {
+      const p = state.game.player;
+      if (p.stress > 76 && Math.random() < (p.stress - 70) / 80) {
+        applyPlayer({negotiation:-2, pr:-2});
+        addLog("高压导致一次判断失误，谈判与公关临时下滑");
+      }
+    }
+
+    function dailyDecay() {
+      getOwned().forEach(a => {
+        if (a.stress > 70) applyArtist(a, {health:-2, trust:-1});
+        if (a.scandal > 62) applyArtist(a, {reputation:-2, fans:-2});
+      });
+    }
+
+    function nextSlot() {
+      const g = state.game;
+      settleSlot();
+      g.slotIndex += 1;
+      if (g.slotIndex >= timeSlots.length) {
+        g.slotIndex = 0;
+        g.day += 1;
+        newDay();
+      }
+      runRivals();
+      saveGame();
+      renderAll();
+      setEvent(buildSlotReport());
+    }
+
+    function settleSlot() {
+      const g = state.game;
+      applyPlayer({stress: timeSlots[g.slotIndex] === "午夜攻坚" ? 4 : 2});
+      g.crisis.forEach(c => {
+        c.countdown -= 1;
+        c.heat = clamp(c.heat + 3);
+        const artist = g.artists.find(a => a.id === c.artistId);
+        if (artist) applyArtist(artist, {scandal:3, stress:2});
+      });
+      g.crisis = g.crisis.filter(c => c.countdown > 0);
+      addLog(`结束${timeSlots[g.slotIndex]}，完成时段结算`);
+    }
+
+    function newDay() {
+      const g = state.game;
+      g.resources = generateResources(g.day, g.player);
+      getOwned().forEach(a => applyArtist(a, {health: 2, stress: -3, scandal: -1}));
+      applyPlayer({stress:-5, money:-6});
+      const focus = pick(["都市剧", "综艺飞行", "时尚商业", "杂志专题"]);
+      g.news.unshift(`晨间简报：第 ${g.day} 天，市场偏好转向${focus}。资源池已刷新。`);
+      if (g.day % 7 === 0) quarterlyShuffle();
+    }
+
+    function buildSlotReport() {
+      const g = state.game;
+      const slot = timeSlots[g.slotIndex];
+      if (slot === "晨间会议") return buildIdleEvent();
+      if (slot === "午夜攻坚") {
+        return {
+          title: "午夜报告",
+          desc: `今日进入收尾阶段。当前风险指数 ${riskLevel()}，竞品仍可能在夜间释放通稿。`,
+          choices: [
+            {title:"整理危机预案", desc:"提高公关与法务，但增加压力。", action: () => resolveChoice("完成午夜危机预案", {player:{pr:2, legal:2, stress:4}, artist:{trust:1, scandal:-2}})},
+            {title:"团队休整", desc:"降低全员压力。", action: () => { getOwned().forEach(a => applyArtist(a, {stress:-5, health:2})); resolveChoice("安排团队休整", {player:{stress:-7, morale:2}}); }},
+            {title:"查看竞品动态", desc:"切到市场信息。", action: () => switchTab("market")},
+            {title:"推进到明天", desc:"结束今日。", action: nextSlot}
+          ]
+        };
+      }
+      return randomEvent();
+    }
+
+    function runRivals() {
+      const g = state.game;
+      if (Math.random() < .42) return;
+      const rival = pick(g.rivals);
+      const target = pick(getOwned());
+      const action = pick(["抢资源", "挖角试探", "舆论攻击", "联盟防守"]);
+      if (action === "抢资源") {
+        rival.resources = clamp(rival.resources + 3);
+        g.rivalNews.unshift(`${rival.name} 抢下一个平台窗口，行业影响 +3。`);
+      } else if (action === "挖角试探") {
+        applyArtist(target, {trust:-3, stress:3});
+        g.rivalNews.unshift(`${rival.name} 私下接触 ${target.name} 团队，你方信任度受扰动。`);
+      } else if (action === "舆论攻击") {
+        applyArtist(target, {scandal:6, reputation:-2});
+        g.rivalNews.unshift(`${rival.name} 疑似放出对比通稿，${target.name} 舆情压力上升。`);
+      } else {
+        rival.mood = "结盟防守";
+        g.rivalNews.unshift(`${rival.name} 与平台宣发团队绑定，短期竞争强度上升。`);
+      }
+      g.rivalNews = g.rivalNews.slice(0, 18);
+    }
+
+    function quarterlyShuffle() {
+      const g = state.game;
+      const top = [...g.rivals].sort((a, b) => b.influence + b.resources - a.influence - a.resources)[0];
+      g.rivalNews.unshift(`季度洗牌：${top.name} 暂居竞品榜首，资源报价整体抬高。`);
+      g.resources.forEach(r => r.competition = clamp(r.competition + 8));
+    }
+
+    function signArtist(id) {
+      const g = state.game;
+      const artist = g.artists.find(a => a.id === id);
+      if (!artist || artist.owner === "player") return;
+      const cost = artist.rating === "S" ? 140 : artist.rating === "A" ? 96 : artist.rating === "B" ? 68 : 44;
+      const chance = g.player.negotiation + g.player.network * .6 + g.player.influence * .3 - cost * .35 - pressurePenalty();
+      if (g.player.money < cost) return toast("资金不足，无法签约");
+      applyPlayer({money:-cost, stress:5, negotiation:2});
+      if (chance > 46) {
+        artist.owner = "player";
+        artist.contract = "剩余 12 个月";
+        artist.trust = clamp(artist.trust + 12);
+        addLog(`成功签约 ${artist.name}`);
+        toast(`已签约 ${artist.name}`);
+      } else {
+        addLog(`签约 ${artist.name} 失败，对方选择继续观望`);
+        toast("谈判失败，对方继续观望");
+      }
+      saveGame();
+      renderAll();
+    }
+
+    function renderAll() {
+      renderTopbar();
+      renderLeft();
+      renderEvent();
+      renderWorkspace();
+      renderFeeds();
+    }
+
+    function renderTopbar() {
+      const g = state.game, p = g.player;
+      $("dateText").textContent = `第 ${g.day} 天 ${timeSlots[g.slotIndex]}`;
+      $("moneyText").textContent = `${p.money} 万`;
+      $("stressText").textContent = `${p.stress} / 100`;
+      $("moraleText").textContent = `${p.morale} / 100`;
+      $("networkText").textContent = `${p.network} / 100`;
+      $("influenceText").textContent = `${p.influence} / 100`;
+      $("playerTitle").textContent = p.name;
+      $("agencyTitle").textContent = `${p.agency} · ${p.career}`;
+      const debuff = $("debuffTag");
+      debuff.textContent = p.stress > 80 ? "高压失误率↑" : p.stress > 65 ? "压力预警" : "状态稳定";
+      debuff.className = `tag ${p.stress > 65 ? "danger" : "ok"}`;
+    }
+
+    function renderLeft() {
+      const p = state.game.player;
+      const statDefs = [
+        ["洞察", p.insight], ["谈判", p.negotiation], ["公关", p.pr], ["人脉网", p.networkSkill], ["法务", p.legal], ["影响力", p.influence]
+      ];
+      $("playerStats").innerHTML = statDefs.map(([label, value]) => `
+        <div class="stat-row"><span>${label}</span><div class="bar"><i style="--v:${value}%"></i></div><span>${stageName(value)}</span></div>
+      `).join("");
+      const owned = getOwned();
+      $("artistCount").textContent = `${owned.length} 人`;
+      if (!state.selectedArtistId || !owned.some(a => a.id === state.selectedArtistId)) state.selectedArtistId = owned[0]?.id;
+      $("ownedArtists").innerHTML = owned.map(a => `
+        <div class="artist-card ${a.id === state.selectedArtistId ? "active" : ""}" data-artist="${a.id}">
+          <img src="${a.avatar}" alt="${a.name}">
+          <div><strong>${a.name}</strong><div class="subtle">${a.route} · ${a.project}</div></div>
+          <span class="badge ${a.rating === "S" ? "gold" : ""}">${a.rating}</span>
+        </div>
+      `).join("");
+      document.querySelectorAll("[data-artist]").forEach(el => {
+        el.addEventListener("click", () => {
+          state.selectedArtistId = el.dataset.artist;
+          switchTab("artists");
+        });
+      });
+    }
+
+    function renderEvent() {
+      const e = state.currentEvent || buildIdleEvent();
+      state.currentEvent = e;
+      $("eventCard").innerHTML = `
+        <div class="eyebrow">${timeSlots[state.game.slotIndex]} · ${state.game.lastAction}</div>
+        <h2>${e.title}</h2>
+        <p>${e.desc}</p>
+        <div class="choice-grid">${e.choices.map((c, i) => `
+          <button class="choice" data-choice="${i}"><strong>${c.title}</strong><span>${c.desc}</span></button>
+        `).join("")}</div>
+      `;
+      document.querySelectorAll("[data-choice]").forEach(btn => {
+        btn.addEventListener("click", () => e.choices[Number(btn.dataset.choice)].action());
+      });
+    }
+
+    function switchTab(tab) {
+      state.currentTab = tab;
+      document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+      renderWorkspace();
+    }
+
+    function renderWorkspace() {
+      const tab = state.currentTab;
+      const artist = selectedArtist();
+      if (tab === "todo") return renderTodo();
+      if (tab === "artists") return renderArtistDetail(artist);
+      if (tab === "resources") return renderResources();
+      if (tab === "crisis") return renderCrisis();
+      if (tab === "market") return renderMarket();
+    }
+
+    function renderTodo() {
+      const g = state.game;
+      $("workspace").innerHTML = `
+        <div class="grid-two">
+          <div class="mini-card"><h3>今日待办</h3><p>${g.day === 1 ? "完成首次资源争夺，至少处理一条潜在舆情。" : "检查资源池、艺人压力与竞品动作。"}</p><button onclick="switchTab('resources')">查看资源池</button></div>
+          <div class="mini-card"><h3>预警系统</h3><p>当前风险指数 ${riskLevel()}。压力越高，关键选择的失误率越高。</p><button onclick="switchTab('crisis')">处理危机</button></div>
+          <div class="mini-card"><h3>当前重点</h3><p>${selectedArtist().name}：${selectedArtist().project}，信任 ${selectedArtist().trust}，黑料 ${selectedArtist().scandal}。</p><button onclick="switchTab('artists')">查看档案</button></div>
+          <div class="mini-card"><h3>时间推进</h3><p>时间不可逆。结束当前时段会结算压力、舆情和竞品动作。</p><button class="primary" onclick="nextSlot()">推进时段</button></div>
+        </div>
+      `;
+    }
+
+    function renderArtistDetail(a) {
+      if (!a) return $("workspace").innerHTML = `<div class="empty">暂无旗下艺人</div>`;
+      const stats = [["表演", a.stats.acting], ["声乐", a.stats.vocal], ["舞蹈", a.stats.dance], ["综艺", a.stats.variety], ["时尚", a.stats.fashion], ["商务", a.stats.business]];
+      $("workspace").innerHTML = `
+        <div class="profile">
+          <img class="avatar" src="${a.avatar}" alt="${a.name}">
+          <div><h2>${a.name} <span class="badge ${a.rating === "S" ? "gold" : ""}">${a.rating}</span></h2><div class="subtle">${a.route} · ${a.contract} · ${a.project}</div></div>
+        </div>
+        <div class="grid-two">
+          <div class="mini-card"><h3>公开状态</h3><p>咖位 ${a.fame} / 健康 ${a.health} / 压力 ${a.stress} / 信任 ${a.trust}</p><p>黑料 ${a.scandal} / 粉丝黏度 ${a.fans} / 业内口碑 ${a.reputation}</p></div>
+          <div class="mini-card ${a.scandal > 60 ? "warn" : ""}"><h3>潜在风险</h3><p>${a.hiddenUnlocked ? a.risk : "需要更高信赖度或人脉解锁完整情报。当前只能看到表层迹象。"}</p><button onclick="unlockHidden('${a.id}')">尝试解锁情报</button></div>
+        </div>
+        <div class="mini-card" style="margin-top:12px"><h3>核心属性</h3><div class="stat-list">${stats.map(([label, value]) => `<div class="stat-row"><span>${label}</span><div class="bar"><i style="--v:${value}%"></i></div><span>${value}</span></div>`).join("")}</div></div>
+        <div class="actions" style="margin-top:12px">
+          <button onclick="trainArtistById('${a.id}','acting')">表演培训</button>
+          <button onclick="trainArtistById('${a.id}','variety')">综艺训练</button>
+          <button onclick="restArtist('${a.id}')">健康管理</button>
+          <button class="primary" onclick="switchTab('resources')">为 TA 争资源</button>
+        </div>
+      `;
+    }
+
+    function renderResources() {
+      const artists = getOwned();
+      $("workspace").innerHTML = `
+        <div class="grid-two">
+          ${state.game.resources.map(r => `
+            <div class="mini-card ${r.used ? "warn" : ""}">
+              <div class="panel-title"><h3>${r.name}</h3><span class="badge ${r.level === "S" ? "gold" : ""}">${r.level}</span></div>
+              <p>${r.type} · 适配 ${r.fit} · 门槛 ${r.threshold} · 竞争 ${r.competition} · 风险 ${r.risk}</p>
+              <select id="sel_${r.id}" ${r.used ? "disabled" : ""}>${artists.map(a => `<option value="${a.id}">${a.name}｜${a.route}</option>`).join("")}</select>
+              <div class="actions" style="margin-top:10px">
+                <button ${r.used ? "disabled" : ""} onclick="applyResource(document.getElementById('sel_${r.id}').value,'${r.id}',false)">常规申请</button>
+                <button ${r.used ? "disabled" : ""} onclick="applyResource(document.getElementById('sel_${r.id}').value,'${r.id}',true)">强势竞价</button>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderCrisis() {
+      const crises = state.game.crisis;
+      if (!crises.length) {
+        $("workspace").innerHTML = `<div class="empty">当前暂无进行中的危机。保持警惕，黑热搜、代言冲突和健康问题可能在任意时段出现。</div>`;
+        return;
+      }
+      $("workspace").innerHTML = `<div class="grid-two">${crises.map(c => {
+        const a = state.game.artists.find(x => x.id === c.artistId);
+        return `<div class="mini-card warn">
+          <div class="panel-title"><h3>${a.name} · ${c.type}</h3><span class="tag danger">${c.countdown} 段倒计时</span></div>
+          <p>阶段：${c.stage}。热度 ${c.heat}。处理需要综合法务、公关、媒体关系、资金与艺人信任。</p>
+          <div class="actions">
+            <button onclick="handleCrisis('${c.id}','law')">法务证据</button>
+            <button onclick="handleCrisis('${c.id}','media')">全网通稿</button>
+            <button onclick="handleCrisis('${c.id}','fans')">粉丝安抚</button>
+          </div>
+        </div>`;
+      }).join("")}</div>`;
+    }
+
+    function renderMarket() {
+      const market = state.game.artists.filter(a => a.owner !== "player");
+      $("workspace").innerHTML = `
+        <div class="grid-two">
+          ${market.map(a => `
+            <div class="mini-card">
+              <div class="profile" style="grid-template-columns:54px 1fr">
+                <img class="avatar" style="width:54px;height:54px;border-radius:15px" src="${a.avatar}" alt="${a.name}">
+                <div><h3>${a.name} <span class="badge ${a.rating === "S" ? "gold" : ""}">${a.rating}</span></h3><div class="subtle">${a.route} · ${a.owner ? rivalName(a.owner) : "自由艺人"}</div></div>
+              </div>
+              <p>咖位 ${a.fame} / 口碑 ${a.reputation} / 潜在风险：${state.game.player.network > 70 ? a.risk : "情报不足"}</p>
+              <button onclick="signArtist('${a.id}')">签约谈判</button>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderFeeds() {
+      const g = state.game;
+      const risk = riskLevel();
+      $("riskBadge").textContent = risk > 70 ? "高风险" : risk > 45 ? "中风险" : "低风险";
+      $("riskBadge").className = `tag ${risk > 70 ? "danger" : risk > 45 ? "hot" : "ok"}`;
+      $("newsFeed").innerHTML = g.news.slice(0, 8).map((n, i) => `<div class="ticker-item"><span class="tag ${i === 0 ? "hot" : ""}">热搜</span> ${n}</div>`).join("");
+      $("rivalFeed").innerHTML = g.rivalNews.slice(0, 8).map(n => `<div class="ticker-item">${n}</div>`).join("");
+      $("logFeed").innerHTML = g.logs.slice(0, 12).map(l => `<div class="log-entry">${l}</div>`).join("");
+    }
+
+    function rivalName(id) {
+      return state.game.rivals.find(r => r.id === id)?.name || "未知公司";
+    }
+
+    function unlockHidden(id) {
+      const a = state.game.artists.find(x => x.id === id);
+      if (!a) return;
+      const p = state.game.player;
+      if (a.trust + p.network + p.insight > 145) {
+        a.hiddenUnlocked = true;
+        addLog(`解锁 ${a.name} 的潜在风险情报：${a.risk}`);
+        toast("情报已解锁");
+      } else {
+        applyPlayer({network:1, stress:2});
+        toast("情报不足，暂未解锁");
+      }
+      saveGame();
+      renderAll();
+    }
+
+    function trainArtistById(id, stat) {
+      const a = state.game.artists.find(x => x.id === id);
+      if (a) trainArtist(a, stat);
+    }
+
+    function restArtist(id) {
+      const a = state.game.artists.find(x => x.id === id);
+      if (!a) return;
+      if (state.game.player.money < 12) return toast("资金不足，无法安排健康管理");
+      resolveChoice(`为 ${a.name} 安排健康管理`, {player:{money:-12, stress:-2}, artist:{health:10, stress:-10, trust:3}});
+    }
+
+    function openLogModal() {
+      $("modal").innerHTML = `<section class="modal-box glass"><div class="panel-title"><h2>完整日志</h2><button onclick="closeModal()">关闭</button></div>${state.game.logs.map(l => `<div class="log-entry">${l}</div>`).join("")}</section>`;
+      $("modal").classList.remove("hidden");
+    }
+
+    function closeModal() {
+      $("modal").classList.add("hidden");
+    }
+
+    function enterGame(game) {
+      state.game = game;
+      state.selectedArtistId = getOwned()[0]?.id;
+      state.currentTab = "todo";
+      state.currentEvent = buildIdleEvent();
+      $("startScreen").classList.add("hidden");
+      $("gameScreen").classList.remove("hidden");
+      renderAll();
+      saveGame();
+    }
+
+    $("startForm").addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      const name = $("playerName").value.trim() || "新锐经纪人";
+      const agency = $("agencyName").value.trim() || "无名工作室";
+      enterGame(createGame(name, agency, $("stylePick").value));
+    });
+
+    $("continueBtn").addEventListener("click", () => {
+      const saved = loadGame();
+      if (saved) enterGame(saved);
+      else toast("没有可继续的存档");
+    });
+
+    $("wipeBtn").addEventListener("click", () => {
+      localStorage.removeItem(SAVE_KEY);
+      $("saveHint").textContent = "未检测到存档";
+      toast("存档已清除");
+    });
+
+    $("saveBtn").addEventListener("click", () => saveGame(true));
+    $("restartBtn").addEventListener("click", () => {
+      if (confirm("确定重开？当前存档会被清除。")) {
+        localStorage.removeItem(SAVE_KEY);
+        location.reload();
+      }
+    });
+    $("logBtn").addEventListener("click", openLogModal);
+    $("modal").addEventListener("click", (ev) => { if (ev.target.id === "modal") closeModal(); });
+    document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+
+    const saved = loadGame();
+    $("saveHint").textContent = saved ? `检测到存档：第 ${saved.day} 天 ${timeSlots[saved.slotIndex]}` : "未检测到存档";
+    $("continueBtn").disabled = !saved;
+
+    window.switchTab = switchTab;
+    window.nextSlot = nextSlot;
+    window.trainArtistById = trainArtistById;
+    window.restArtist = restArtist;
+    window.applyResource = applyResource;
+    window.handleCrisis = handleCrisis;
+    window.signArtist = signArtist;
+    window.unlockHidden = unlockHidden;
+    window.closeModal = closeModal;
+  </script>
+</body>
+</html>
