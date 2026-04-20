@@ -86,6 +86,11 @@
       box-shadow: 0 0 0 3px rgba(164,215,235,.14);
     }
 
+    select option {
+      color: #f5f8ff;
+      background: #12182f;
+    }
+
     .hidden { display: none !important; }
 
     .screen {
@@ -192,6 +197,9 @@
     }
 
     .topbar {
+      position: sticky;
+      top: 10px;
+      z-index: 15;
       display: grid;
       grid-template-columns: minmax(210px, 1fr) repeat(5, minmax(120px, .7fr)) auto;
       gap: 10px;
@@ -283,7 +291,8 @@
       transform: translateX(2px);
     }
 
-    .artist-card img {
+    .artist-card img,
+    .artist-portrait {
       width: 54px;
       height: 54px;
       border-radius: 15px;
@@ -343,6 +352,20 @@
       margin: 0 0 18px;
     }
 
+    .event-meta {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+
+    .event-meta .tag {
+      max-width: 100%;
+      white-space: normal;
+      line-height: 1.45;
+    }
+
     .choice-grid {
       position: relative;
       display: grid;
@@ -393,6 +416,18 @@
       padding: 13px;
       border: 1px solid rgba(255,255,255,.12);
       background: rgba(255,255,255,.06);
+    }
+
+    .mini-card.resource-won {
+      border-color: rgba(126, 224, 196, .56);
+      background: linear-gradient(135deg, rgba(126,224,196,.18), rgba(255,255,255,.055));
+      box-shadow: 0 0 20px rgba(126,224,196,.12);
+    }
+
+    .mini-card.resource-lost {
+      border-color: rgba(255, 106, 114, .56);
+      background: linear-gradient(135deg, rgba(255,106,114,.2), rgba(255,255,255,.055));
+      box-shadow: 0 0 20px rgba(255,106,114,.1);
     }
 
     .mini-card h3 { font-size: 16px; margin-bottom: 7px; }
@@ -514,10 +549,40 @@
     }
 
     @media (max-width: 820px) {
-      .screen { padding: 12px; }
+      .screen { padding: 10px; }
       .start-inner, .layout, .grid-two, .choice-grid, .right-stack { grid-template-columns: 1fr; }
       .poster { min-height: 440px; padding: 28px; }
-      .topbar { grid-template-columns: repeat(2, 1fr); }
+      .app { gap: 12px; }
+      .topbar {
+        top: 8px;
+        display: flex;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        padding: 10px;
+        gap: 8px;
+        border-radius: 16px;
+      }
+      .topbar::-webkit-scrollbar { display: none; }
+      .topbar .metric {
+        flex: 0 0 138px;
+        padding: 8px 10px;
+        border-radius: 12px;
+      }
+      .topbar .metric:first-child { flex-basis: 168px; }
+      .topbar .metric .label { font-size: 11px; margin-bottom: 3px; }
+      .topbar .metric strong { font-size: 15px; }
+      .topbar .actions {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .topbar .actions button {
+        min-height: 34px;
+        padding: 7px 11px;
+        white-space: nowrap;
+      }
       .workspace { max-height: none; }
       .layout { min-height: auto; }
     }
@@ -559,11 +624,17 @@
           <input id="agencyName" maxlength="14" value="极光艺能" autocomplete="off">
         </div>
         <div class="form-row">
-          <label for="stylePick">开局风格</label>
+          <label for="playerAge">主控年龄</label>
+          <input id="playerAge" type="number" min="20" max="35" value="26" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label for="stylePick">身份背景</label>
           <select id="stylePick">
-            <option value="pr">公关控场：公关与媒体敏感更高</option>
-            <option value="deal">资源谈判：谈判与人脉更高</option>
-            <option value="law">底线法务：法务与道德更高</option>
+            <option value="传媒实习生">传媒实习生：均衡起步，资源偏低</option>
+            <option value="星二代">星二代：家族人脉高，舆情波动更明显</option>
+            <option value="海归精英">海归精英：海外资源与谈判起点更高</option>
+            <option value="草根逆袭">草根逆袭：初始资源少，但信赖成长更快</option>
+            <option value="学院派">学院派：法务与理论能力更稳</option>
           </select>
         </div>
         <div class="actions">
@@ -658,22 +729,36 @@
 
     const $ = (id) => document.getElementById(id);
     const clamp = (n, min = 0, max = 100) => Math.max(min, Math.min(max, Math.round(n)));
+    const clamp1000 = (n) => Math.max(0, Math.min(1000, Math.round(n)));
+    const scaleTo1000 = (v) => v > 100 ? clamp1000(v) : clamp1000(v * 10);
+    const delta1000 = (v) => Math.abs(v) <= 30 ? v * 10 : v;
+    const barPct = (v) => `${Math.max(0, Math.min(100, Math.round((v || 0) / 10)))}%`;
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
     const uid = (prefix) => `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
 
-    function svgAvatar(name, gender, index) {
-      const palette = gender === "女"
-        ? [["#CAC2FF", "#A4D7EB", "#FFB7D5"], ["#FFD6E7", "#9FE4FF", "#D9C6FF"], ["#B8F3FF", "#F2C6FF", "#FFF0A3"]]
-        : [["#9AD7FF", "#CAC2FF", "#6BE5C7"], ["#C8DDFF", "#B8A8FF", "#F0D186"], ["#A4D7EB", "#90B5FF", "#F6C77A"]];
-      const p = palette[index % palette.length];
-      const text = name.slice(-1);
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
-        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${p[0]}"/><stop offset=".55" stop-color="${p[1]}"/><stop offset="1" stop-color="${p[2]}"/></linearGradient></defs>
-        <rect width="180" height="180" rx="34" fill="#11152e"/><circle cx="132" cy="42" r="52" fill="url(#g)" opacity=".58"/>
-        <circle cx="85" cy="72" r="33" fill="url(#g)"/><path d="M35 156c7-38 29-57 50-57s43 19 50 57" fill="url(#g)" opacity=".9"/>
-        <text x="90" y="114" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" font-weight="800" fill="#fff">${text}</text>
-      </svg>`;
-      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    const femaleAvatarPool = [
+      "https://s1.imagehub.cc/images/2025/05/13/dded41b45675c9032aa4838712dd438a.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/0bdf7e3ca8432e4cc19d6b96caefd246.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/b5a132abba6dbb9a17ae30cf89f0d317.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/6f907eacaef4bc87697c125aa08428a4.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/cb9cdbdc43f8bb0d716afd0386f9eb23.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/dc328faaebd21cad8afbc10fb8007599.jpg"
+    ];
+
+    const maleAvatarPool = [
+      "https://s1.imagehub.cc/images/2025/05/13/94e07caead229926f7e46d9f20819d47.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/cbe18ef3dccc6e6d6010209294dc43bd.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/e2e18b4f19b69d0793d6365a01324560.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/9c379dea1be8d0fb76bc277b584c799f.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/8a8f775e323ca0b732937bb06a8d2ebf.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/73bfd4dfb7ec480e796214207cdf376a.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/c98e910256cdaf5b6a4ea2229f386786.jpg",
+      "https://s1.imagehub.cc/images/2025/05/13/0f9e142bbdb176391addea620c80a1ae.jpg"
+    ];
+
+    function artistAvatar(gender, index) {
+      const pool = gender === "女" ? femaleAvatarPool : maleAvatarPool;
+      return pool[index % pool.length];
     }
 
     const templates = [
@@ -693,50 +778,105 @@
 
     function makeArtist(row, index, owned = false, rival = null) {
       const [name, gender, route, rating, stats] = row;
+      const debutByRating = {S: "二线", A: "三线", B: "十八线", C: "素人", D: "素人"};
+      const contractByRating = {S: "自主权协议", A: "分成约", B: "新人约", C: "新人约", D: "新人约"};
+      const coreStats = {
+        appearance: scaleTo1000((stats.fashion + stats.business) / 2),
+        stamina: clamp1000(520 + index * 22),
+        fashion: scaleTo1000(stats.fashion),
+        vocal: scaleTo1000(stats.vocal),
+        acting: scaleTo1000(stats.acting),
+        eq: scaleTo1000((stats.variety + stats.business) / 2)
+      };
+      const hiddenStats = {
+        audienceAffinity: clamp1000(420 + Math.random() * 300),
+        industryReputation: clamp1000((46 + Math.random() * 35) * 10),
+        fanLoyalty: clamp1000((42 + Math.random() * 35) * 10),
+        scandal: clamp1000(Math.random() * 260)
+      };
       return {
         id: uid("artist"),
         name, gender, route, rating,
-        avatar: svgAvatar(name, gender, index),
+        age: 19 + (index % 8),
+        debutStatus: debutByRating[rating] || "素人",
+        avatar: artistAvatar(gender, index),
         owner: owned ? "player" : rival,
-        fame: rating === "S" ? 70 : rating === "A" ? 58 : rating === "B" ? 43 : 30,
-        stats: {...stats},
+        fame: rating === "S" ? 700 : rating === "A" ? 580 : rating === "B" ? 430 : 300,
+        coreStats,
+        hiddenStats,
+        stats: {
+          acting: coreStats.acting,
+          vocal: coreStats.vocal,
+          dance: coreStats.stamina,
+          variety: coreStats.eq,
+          fashion: coreStats.fashion,
+          business: coreStats.eq
+        },
         project: owned ? pick(["短剧试镜", "综艺飞行", "杂志拍摄"]) : pick(["竞品培养", "待签约观察", "平台面谈"]),
         contract: owned ? "剩余 18 个月" : "可洽谈",
-        health: clamp(76 + Math.random() * 18),
-        stress: clamp(24 + Math.random() * 24),
-        trust: owned ? clamp(52 + Math.random() * 22) : clamp(30 + Math.random() * 20),
-        scandal: clamp(Math.random() * 26),
-        fans: clamp(42 + Math.random() * 35),
-        reputation: clamp(46 + Math.random() * 35),
+        contractType: contractByRating[rating] || "新人约",
+        health: clamp1000(760 + Math.random() * 180),
+        stress: clamp1000(240 + Math.random() * 240),
+        trust: owned ? clamp1000(520 + Math.random() * 220) : clamp1000(300 + Math.random() * 200),
+        obedience: clamp1000(460 + Math.random() * 320),
+        ambition: clamp1000(380 + Math.random() * 420),
+        depression: clamp1000(100 + Math.random() * 260),
+        terminationRisk: clamp1000(80 + Math.random() * 240),
+        scandal: hiddenStats.scandal,
+        fans: hiddenStats.fanLoyalty,
+        reputation: hiddenStats.industryReputation,
+        riskFlags: {
+          healthBombDays: 0,
+          romanceMineCount: 0,
+          legalIssueCount: 0,
+          mentalCrisisDays: 0
+        },
         risk: pick(["旧采访争议", "健康波动", "恋情传闻", "档期冲突", "粉圈内耗", "税务需复核"]),
         hiddenUnlocked: false
       };
     }
 
-    function createGame(name, agency, style) {
+    function createGame(name, agency, age, background) {
       const rivals = ["星河传媒", "盛唐娱乐", "蓝鲸影业", "月环文化", "棱镜偶像"].map((name, i) => ({
         id: uid("rival"), name, influence: 45 + i * 6, aggression: 35 + i * 7, resources: 45 + i * 5, mood: "观望"
       }));
-      const artists = templates.map((row, i) => makeArtist(row, i, i < 3, i < 3 ? null : rivals[(i - 3) % rivals.length].id));
+      const artists = templates.map((row, i) => makeArtist(row, i, i === 0, i === 0 ? null : rivals[(i - 1) % rivals.length].id));
+      const backgroundConfig = {
+        "传媒实习生": {money: 520, familyNetwork: 120, overseasResources: 80, insight: 500, pr: 520},
+        "星二代": {money: 680, familyNetwork: 720, overseasResources: 180, influence: 520, morale: 560},
+        "海归精英": {money: 620, familyNetwork: 220, overseasResources: 760, negotiation: 620, insight: 620},
+        "草根逆袭": {money: 500, familyNetwork: 80, overseasResources: 80, networkSkill: 560, trustSense: 620},
+        "学院派": {money: 560, familyNetwork: 160, overseasResources: 180, legal: 650, insight: 560}
+      }[background] || {};
       const player = {
-        name, agency, avatar: mainAvatar, career: "新锐经纪人",
-        money: 320, stress: 28, morale: style === "law" ? 72 : 60, network: style === "deal" ? 68 : 52,
-        insight: style === "deal" ? 58 : 50, negotiation: style === "deal" ? 70 : 54,
-        pr: style === "pr" ? 72 : 54, networkSkill: style === "deal" ? 66 : 52,
-        legal: style === "law" ? 70 : 48, influence: 35,
-        trustSense: 45, mediaSense: style === "pr" ? 68 : 48
+        name, agency, age, background, avatar: mainAvatar, career: "实习助理",
+        money: backgroundConfig.money || 560,
+        stress: 280,
+        morale: backgroundConfig.morale || 600,
+        network: backgroundConfig.network || 520,
+        insight: backgroundConfig.insight || 500,
+        negotiation: backgroundConfig.negotiation || 540,
+        pr: backgroundConfig.pr || 540,
+        networkSkill: backgroundConfig.networkSkill || 520,
+        legal: backgroundConfig.legal || 480,
+        influence: backgroundConfig.influence || 350,
+        familyNetwork: backgroundConfig.familyNetwork || 120,
+        overseasResources: backgroundConfig.overseasResources || 120,
+        trustSense: backgroundConfig.trustSense || 450,
+        mediaSense: backgroundConfig.mediaSense || 480
       };
       return {
-        version: 1,
+        version: 2,
         day: 1,
         slotIndex: 0,
         player,
         artists,
+        artistManager: {artistRosterCapacity: 1},
         rivals,
         resources: generateResources(1, player),
-        news: ["晨间简报：平台本周偏爱都市剧与熟人综艺，时尚刊资源释放两个窗口。"],
+        news: ["晨间简报：平台今天更愿意看都市剧和熟人综艺，时尚刊那边也空出了两个可以争取的窗口。"],
         rivalNews: ["竞品雷达：五家公司均在观察新人池，暂无正面冲突。"],
-        logs: ["第 1 天 08:00，新档开启。你接手三名初始艺人，工作室进入试运营。"],
+        logs: ["第 1 天 08:00，新档开启。签约池容量 1 人，你接手首名核心艺人，工作室进入试运营。"],
         crisis: [],
         rank: [],
         lastAction: "等待晨间决策",
@@ -754,16 +894,18 @@
       };
       return resourceTypes.map((type, i) => {
         const level = pick(["C", "B", "A", day > 8 ? "S" : "B"]);
-        const base = level === "S" ? 78 : level === "A" ? 64 : level === "B" ? 50 : 36;
+        const base = level === "S" ? 780 : level === "A" ? 640 : level === "B" ? 500 : 360;
         return {
           id: uid("res"),
           type,
           name: pick(names[type]),
           level,
           threshold: base,
-          reward: base + 20 + Math.floor(Math.random() * 28),
-          risk: clamp(base / 2 + Math.random() * 26),
-          competition: clamp(38 + Math.random() * 42 + day * 1.5),
+          slot: pick(["试镜沟通", "品牌背调", "平台排期", "商务报价", "宣发预热"]),
+          condition: pick(["番位仍在谈", "名单未公开", "竞品同步报价", "品牌要求净词", "档期需要二次确认"]),
+          reward: Math.round(base / 10) + 20 + Math.floor(Math.random() * 28),
+          risk: clamp1000(base / 2 + Math.random() * 260),
+          competition: clamp1000(380 + Math.random() * 420 + day * 15),
           fit: pick(routes),
           used: false
         };
@@ -787,7 +929,94 @@
     function loadGame() {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return null;
-      try { return JSON.parse(raw); } catch { return null; }
+      try { return migrateSave(JSON.parse(raw)); } catch { return null; }
+    }
+
+    function migrateSave(game) {
+      if (!game || !Array.isArray(game.artists)) return game;
+      const debutByRating = {S: "二线", A: "三线", B: "十八线", C: "素人", D: "素人"};
+      const contractByRating = {S: "自主权协议", A: "分成约", B: "新人约", C: "新人约", D: "新人约"};
+      const numericPlayerKeys = ["stress", "morale", "network", "insight", "negotiation", "pr", "networkSkill", "legal", "influence", "trustSense", "mediaSense"];
+      numericPlayerKeys.forEach((key) => {
+        if (game.player?.[key] !== undefined) game.player[key] = scaleTo1000(game.player[key]);
+      });
+      if (!game.player.age) game.player.age = 26;
+      if (!game.player.background) game.player.background = "传媒实习生";
+      if (game.player.money < 500) game.player.money = Math.max(500, game.player.money);
+      if (game.player.familyNetwork === undefined) game.player.familyNetwork = 120;
+      if (game.player.overseasResources === undefined) game.player.overseasResources = 120;
+      if (!game.player.career || game.player.career === "新锐经纪人") game.player.career = "实习助理";
+      const ownedCount = game.artists.filter((artist) => artist.owner === "player").length;
+      if (!game.artistManager) game.artistManager = {artistRosterCapacity: Math.min(5, Math.max(1, ownedCount))};
+      game.artists.forEach((artist, index) => {
+        if (!artist.age) artist.age = 19 + (index % 8);
+        if (!artist.debutStatus) artist.debutStatus = debutByRating[artist.rating] || "素人";
+        if (!artist.contractType) artist.contractType = contractByRating[artist.rating] || "新人约";
+        const legacyStats = artist.stats || {};
+        if (!artist.coreStats) {
+          const legacyFashion = legacyStats.fashion || 50;
+          const legacyBusiness = legacyStats.business || 50;
+          const legacyVariety = legacyStats.variety || 50;
+          artist.coreStats = {
+            appearance: scaleTo1000((legacyFashion + legacyBusiness) / 2),
+            stamina: scaleTo1000(legacyStats.dance || 52),
+            fashion: scaleTo1000(legacyFashion),
+            vocal: scaleTo1000(legacyStats.vocal || 50),
+            acting: scaleTo1000(legacyStats.acting || 50),
+            eq: scaleTo1000((legacyVariety + legacyBusiness) / 2)
+          };
+        } else {
+          Object.keys(artist.coreStats).forEach((key) => artist.coreStats[key] = scaleTo1000(artist.coreStats[key]));
+        }
+        if (!artist.hiddenStats) {
+          artist.hiddenStats = {
+            audienceAffinity: scaleTo1000(artist.fans || 50),
+            industryReputation: scaleTo1000(artist.reputation || 50),
+            fanLoyalty: scaleTo1000(artist.fans || 50),
+            scandal: scaleTo1000(artist.scandal || 0)
+          };
+        } else {
+          Object.keys(artist.hiddenStats).forEach((key) => artist.hiddenStats[key] = scaleTo1000(artist.hiddenStats[key]));
+        }
+        artist.stats = {
+          acting: artist.coreStats.acting,
+          vocal: artist.coreStats.vocal,
+          dance: artist.coreStats.stamina,
+          variety: artist.coreStats.eq,
+          fashion: artist.coreStats.fashion,
+          business: artist.coreStats.eq
+        };
+        ["fame", "health", "stress", "trust", "obedience", "ambition", "depression", "terminationRisk"].forEach((key) => {
+          if (artist[key] !== undefined) artist[key] = scaleTo1000(artist[key]);
+        });
+        artist.scandal = artist.hiddenStats.scandal;
+        artist.fans = artist.hiddenStats.fanLoyalty;
+        artist.reputation = artist.hiddenStats.industryReputation;
+        if (!artist.riskFlags) artist.riskFlags = {healthBombDays: 0, romanceMineCount: 0, legalIssueCount: 0, mentalCrisisDays: 0};
+      });
+      if (game.avatarVersion !== 3) {
+        game.artists.forEach((artist, index) => {
+          artist.avatar = artistAvatar(artist.gender, index);
+        });
+        game.avatarVersion = 3;
+        localStorage.setItem(SAVE_KEY, JSON.stringify(game));
+      }
+      if (Array.isArray(game.resources)) {
+        game.resources.forEach((resource) => {
+          if (!resource.slot) resource.slot = pick(["试镜沟通", "品牌背调", "平台排期", "商务报价", "宣发预热"]);
+          if (!resource.condition) resource.condition = pick(["番位仍在谈", "名单未公开", "竞品同步报价", "品牌要求净词", "档期需要二次确认"]);
+          resource.threshold = scaleTo1000(resource.threshold || 50);
+          resource.risk = scaleTo1000(resource.risk || 40);
+          resource.competition = scaleTo1000(resource.competition || 50);
+          if (resource.used && !resource.result) {
+            const winner = game.artists.find((artist) => artist.project === resource.name);
+            resource.applicantId = winner?.id || game.artists.find((artist) => artist.owner === "player")?.id;
+            resource.result = winner ? "won" : "lost";
+          }
+        });
+        localStorage.setItem(SAVE_KEY, JSON.stringify(game));
+      }
+      return game;
     }
 
     function addLog(text) {
@@ -808,29 +1037,54 @@
       const p = state.game.player;
       Object.entries(delta).forEach(([key, value]) => {
         if (key === "money") p.money = Math.max(0, Math.round(p.money + value));
-        else p[key] = clamp((p[key] || 0) + value, 0, 100);
+        else p[key] = clamp1000((p[key] || 0) + delta1000(value));
       });
     }
 
     function applyArtist(artist, delta) {
+      const coreAlias = {dance: "stamina", variety: "eq", business: "eq"};
+      const hiddenAlias = {reputation: "industryReputation", fans: "fanLoyalty", scandal: "scandal"};
       Object.entries(delta).forEach(([key, value]) => {
-        if (artist.stats[key] !== undefined) artist.stats[key] = clamp(artist.stats[key] + value);
-        else artist[key] = clamp((artist[key] || 0) + value);
+        const change = delta1000(value);
+        const coreKey = coreAlias[key] || key;
+        const hiddenKey = hiddenAlias[key] || key;
+        if (artist.coreStats?.[coreKey] !== undefined) artist.coreStats[coreKey] = clamp1000(artist.coreStats[coreKey] + change);
+        else if (artist.hiddenStats?.[hiddenKey] !== undefined) artist.hiddenStats[hiddenKey] = clamp1000(artist.hiddenStats[hiddenKey] + change);
+        else if (artist.stats?.[key] !== undefined) artist.stats[key] = clamp1000(artist.stats[key] + change);
+        else artist[key] = clamp1000((artist[key] || 0) + change);
       });
+      syncArtistAliases(artist);
+    }
+
+    function syncArtistAliases(artist) {
+      if (!artist.coreStats) return;
+      artist.stats = {
+        acting: artist.coreStats.acting,
+        vocal: artist.coreStats.vocal,
+        dance: artist.coreStats.stamina,
+        variety: artist.coreStats.eq,
+        fashion: artist.coreStats.fashion,
+        business: artist.coreStats.eq
+      };
+      if (artist.hiddenStats) {
+        artist.scandal = artist.hiddenStats.scandal;
+        artist.fans = artist.hiddenStats.fanLoyalty;
+        artist.reputation = artist.hiddenStats.industryReputation;
+      }
     }
 
     function stageName(value) {
-      if (value >= 85) return "王牌";
-      if (value >= 70) return "成熟";
-      if (value >= 55) return "可用";
-      if (value >= 40) return "起步";
+      if (value >= 800) return "顶级";
+      if (value >= 600) return "优势";
+      if (value >= 400) return "稳定";
+      if (value >= 200) return "基础";
       return "薄弱";
     }
 
     function riskLevel() {
       const g = state.game;
       const avgScandal = getOwned().reduce((sum, a) => sum + a.scandal, 0) / Math.max(1, getOwned().length);
-      return clamp(avgScandal * .55 + g.player.stress * .35 + g.crisis.length * 12);
+      return clamp1000(avgScandal * .55 + g.player.stress * .35 + g.crisis.length * 120);
     }
 
     function setEvent(event) {
@@ -848,7 +1102,7 @@
           desc: `${artist.name} 今日重点是「${artist.project}」。资源池已更新，竞品公司会在白天开始动作。你需要先决定工作室的重心。`,
           choices: [
             {title:"压低风险", desc:"复核舆情与合规，换取稳定。", action: () => resolveChoice("完成晨间风险复核", {player:{legal:3, pr:2, stress:3, morale:1}, artist:{scandal:-6, trust:2}})},
-            {title:"冲刺资源", desc:"提前联络平台与品牌方。", action: () => resolveChoice("提前铺资源线", {player:{network:4, negotiation:3, stress:5, money:-12}, artist:{fame:2, stress:2}})},
+            {title:"争取机会", desc:"先和平台、品牌方打个招呼，把名字放进备选名单。", action: () => resolveChoice("提前争取项目机会", {player:{network:4, negotiation:3, stress:5, money:-12}, artist:{fame:2, stress:2}})},
             {title:"艺人沟通", desc:"安抚团队情绪，提高信任。", action: () => resolveChoice("完成一对一沟通", {player:{stress:-3, trustSense:3}, artist:{trust:7, stress:-5, health:2}})},
             {title:"推进时段", desc:"结束当前时段并结算。", action: nextSlot}
           ]
@@ -861,18 +1115,24 @@
       const artist = selectedArtist();
       const pool = [
         {
-          title: "资源窗口临时打开",
-          desc: `平台制片临时询问 ${artist.name} 的档期，但竞品也在报价。你的谈判、艺人适配度与舆情都会影响结果。`,
+          title: "白天工作 · 一个临时机会",
+          scene: "平台临时会议",
+          people: `${artist.name}、平台制片、竞品经纪人`,
+          risk: "报价、档期和艺人口碑都会影响结果；平台只透露了部分信息。",
+          desc: `平台制片临时问起 ${artist.name} 的档期，语气很客气，听起来却不像随口一问。品牌品控还在看资料，竞品那边也在报价；这不是已经落袋的名额，但确实是一扇刚开出来的门。`,
           choices: [
-            {title:"强势竞价", desc:"花钱压档期，争取直接锁定。", action: () => competeForBestResource(artist, true)},
-            {title:"用人脉换机会", desc:"请熟人递话，成本较低但看脸。", action: () => competeForBestResource(artist, false)},
-            {title:"暂不冒进", desc:"保存体力，降低艺人压力。", action: () => resolveChoice("放弃临时窗口，团队转入蓄力", {player:{stress:-4, morale:1}, artist:{stress:-6, health:3, trust:2}})},
+            {title:"加价锁档", desc:"用预算换排期优先权，但会抬高团队压力。", action: () => competeForBestResource(artist, true)},
+            {title:"请熟人递话", desc:"让平台内容总监先看资料，成本低但结果不透明。", action: () => competeForBestResource(artist, false)},
+            {title:"先稳住团队", desc:"这次先不冒进，把体力和舆情留给更适配的项目。", action: () => resolveChoice("放过这个临时机会，团队转入蓄力", {player:{stress:-4, morale:1}, artist:{stress:-6, health:3, trust:2}})},
             {title:"推进时段", desc:"跳过此事件。", action: nextSlot}
           ]
         },
         {
-          title: "黑热搜苗头",
-          desc: `${artist.name} 的旧物料被营销号剪辑，负面词条正在发酵。若处理不当，黑料值与粉丝对立都会上升。`,
+          title: "舆情室亮起了黄灯",
+          scene: "危机公关室",
+          people: `${artist.name}、营销号、粉丝站`,
+          risk: "目前只能确认剪辑源头异常，不能直接判断幕后公司。",
+          desc: `${artist.name} 的旧物料被营销号重新剪辑，词条还没冲上高位，但评论区已经开始分裂。若处理不当，黑料值、粉丝黏度和业内口碑都会被拖累。`,
           choices: [
             {title:"证据收集", desc:"先查来源，适合法务高的路线。", action: () => startCrisis(artist, "黑热搜", "evidence")},
             {title:"温和通稿", desc:"降低对立，消耗公关预算。", action: () => startCrisis(artist, "黑热搜", "soft")},
@@ -881,8 +1141,11 @@
           ]
         },
         {
-          title: "行业酒会邀请",
-          desc: `今晚有品牌、平台和杂志编辑出席。参加能涨人脉，也可能让压力与道德选择同时摆上桌。`,
+          title: "晚宴名单里出现了熟人",
+          scene: "品牌酒会",
+          people: "品牌方负责人、平台内容总监、杂志编辑",
+          risk: "公开露面会换来关系线索，也可能让艺人被现场比较。",
+          desc: `今晚有品牌、平台和杂志编辑出席。邀请函没有写明议题，但几个关键席位都留给了今年要抢封面和商务短约的人。`,
           choices: [
             {title:"带艺人露面", desc:"曝光更高，也更容易被比较。", action: () => resolveChoice("带艺人参加酒会，拿到两条潜在线索", {player:{network:6, influence:3, stress:5, morale:-2}, artist:{fame:4, fashion:3, stress:5}})},
             {title:"独自社交", desc:"稳妥积累人脉，艺人压力不变。", action: () => resolveChoice("独自参加酒会，稳住品牌关系", {player:{network:5, negotiation:2, stress:4, money:-8}, artist:{trust:1}})},
@@ -891,8 +1154,11 @@
           ]
         },
         {
-          title: "训练档期空出",
-          desc: `${artist.name} 有半天窗口可以补课。不同训练会改变后续资源适配与竞争胜率。`,
+          title: "排期里挤出半天空档",
+          scene: "艺人培训室",
+          people: `${artist.name}、执行经纪、课程老师`,
+          risk: "训练会提高项目适配，但若压力持续高位，健康和服从度会下滑。",
+          desc: `${artist.name} 下午临时空出半天。课程老师愿意加塞，但团队刚结束一轮通告，继续压训练可能影响后续执行。`,
           choices: [
             {title:"表演课", desc:"提升影视竞争力。", action: () => trainArtist(artist, "acting")},
             {title:"综艺反应", desc:"提升综艺与公关容错。", action: () => trainArtist(artist, "variety")},
@@ -926,7 +1192,7 @@
       const names = {acting:"表演课", variety:"综艺反应"};
       resolveChoice(`为 ${artist.name} 安排${names[stat]}`, {
         player: {money: -cost, stress: 3, insight: 1},
-        artist: {[stat]: 7, stress: 5, trust: 2, health: -2}
+        artist: {[stat]: 7, stress: 5, trust: 2, health: -2, obedience: -1}
       });
     }
 
@@ -941,22 +1207,24 @@
       const resource = g.resources.find(r => r.id === resourceId);
       if (!artist || !resource || resource.used) return;
       if (spend && g.player.money < 28) return toast("资金不足，无法强势竞价");
-      const fit = artist.route === resource.fit ? 14 : 0;
-      const attrMap = {影视:"acting", 综艺:"variety", 代言:"business", 杂志:"fashion", 商务:"business"};
-      const attr = artist.stats[attrMap[resource.type]] || 50;
-      const score = attr * .38 + artist.fame * .18 + artist.reputation * .15 + g.player.negotiation * .18 + g.player.network * .11 + fit - artist.scandal * .22 - resource.competition * .18 + (spend ? 18 : 0) - pressurePenalty();
-      const success = score >= resource.threshold - 8;
+      const fit = artist.route === resource.fit ? 140 : 0;
+      const attrMap = {影视:"acting", 综艺:"eq", 代言:"eq", 杂志:"fashion", 商务:"eq"};
+      const attr = artist.coreStats[attrMap[resource.type]] || 500;
+      const score = attr * .38 + artist.fame * .18 + artist.reputation * .15 + g.player.negotiation * .18 + g.player.network * .11 + fit - artist.scandal * .22 - resource.competition * .18 + (spend ? 180 : 0) - pressurePenalty();
+      const success = score >= resource.threshold - 80;
       resource.used = true;
+      resource.applicantId = artist.id;
+      resource.result = success ? "won" : "lost";
       if (spend) applyPlayer({money:-28, stress:4});
       if (success) {
         applyPlayer({money: Math.round(resource.reward * .75), influence: 4, network: 2, stress: 4});
-        applyArtist(artist, {fame: 6, reputation: 4, fans: 5, stress: 6});
+        applyArtist(artist, {fame: 6, reputation: 4, fans: 5, stress: 6, ambition: 2, terminationRisk: -2});
         artist.project = resource.name;
         g.news.unshift(`热搜上升：${artist.name} 拿下「${resource.name}」，粉丝开始控评庆祝。`);
         addLog(`${artist.name} 成功争取 ${resource.level} 级${resource.type}资源「${resource.name}」`);
       } else {
         applyPlayer({stress: 6, negotiation: 1, money: -8});
-        applyArtist(artist, {stress: 7, trust: -3, scandal: 3});
+        applyArtist(artist, {stress: 7, trust: -3, scandal: 3, terminationRisk: 4, obedience: -2});
         g.rivalNews.unshift(`竞品抢单：${resource.name} 被其他公司截走，平台反馈你方报价与舆情不够稳。`);
         addLog(`${artist.name} 争取「${resource.name}」失败，竞品截走资源`);
       }
@@ -974,7 +1242,7 @@
         id: uid("crisis"), artistId: artist.id, type,
         stage: route === "evidence" ? "证据收集" : "通稿定调",
         countdown: 3,
-        heat: clamp(45 + artist.scandal * .5 + Math.random() * 24)
+        heat: clamp1000(450 + artist.scandal * .5 + Math.random() * 240)
       };
       g.crisis.push(crisis);
       const effects = route === "evidence"
@@ -1001,7 +1269,7 @@
         g.crisis = g.crisis.filter(c => c.id !== id);
         addLog(`成功处理 ${artist.name} 的${crisis.type}危机`);
       } else {
-        crisis.heat = clamp(crisis.heat + 12);
+        crisis.heat = clamp1000(crisis.heat + 120);
         crisis.countdown -= 1;
         applyArtist(artist, {scandal:10, reputation:-5, fans:-6, stress:7, trust:-3});
         g.news.unshift(`危机升温：${artist.name} 的${crisis.type}出现二次扩散，倒计时剩余 ${crisis.countdown}。`);
@@ -1018,21 +1286,21 @@
 
     function pressurePenalty() {
       const stress = state.game.player.stress;
-      return stress > 80 ? 16 : stress > 65 ? 8 : stress > 50 ? 3 : 0;
+      return stress > 800 ? 160 : stress > 650 ? 80 : stress > 500 ? 30 : 0;
     }
 
     function maybeTriggerPressureSlip() {
       const p = state.game.player;
-      if (p.stress > 76 && Math.random() < (p.stress - 70) / 80) {
-        applyPlayer({negotiation:-2, pr:-2});
+      if (p.stress > 760 && Math.random() < p.stress * 0.001) {
+        applyPlayer({negotiation:-20, pr:-20});
         addLog("高压导致一次判断失误，谈判与公关临时下滑");
       }
     }
 
     function dailyDecay() {
       getOwned().forEach(a => {
-        if (a.stress > 70) applyArtist(a, {health:-2, trust:-1});
-        if (a.scandal > 62) applyArtist(a, {reputation:-2, fans:-2});
+        if (a.stress > 700) applyArtist(a, {health:-20, trust:-10});
+        if (a.scandal > 620) applyArtist(a, {industryReputation:-20, fanLoyalty:-20});
       });
     }
 
@@ -1126,14 +1394,16 @@
       const g = state.game;
       const artist = g.artists.find(a => a.id === id);
       if (!artist || artist.owner === "player") return;
+      const capacity = g.artistManager?.artistRosterCapacity || 1;
+      if (getOwned().length >= capacity) return toast(`签约池已满：${getOwned().length}/${capacity}，请先扩充管理容量`);
       const cost = artist.rating === "S" ? 140 : artist.rating === "A" ? 96 : artist.rating === "B" ? 68 : 44;
       const chance = g.player.negotiation + g.player.network * .6 + g.player.influence * .3 - cost * .35 - pressurePenalty();
       if (g.player.money < cost) return toast("资金不足，无法签约");
       applyPlayer({money:-cost, stress:5, negotiation:2});
-      if (chance > 46) {
+      if (chance > 460) {
         artist.owner = "player";
         artist.contract = "剩余 12 个月";
-        artist.trust = clamp(artist.trust + 12);
+        applyArtist(artist, {trust: 12});
         addLog(`成功签约 ${artist.name}`);
         toast(`已签约 ${artist.name}`);
       } else {
@@ -1144,7 +1414,22 @@
       renderAll();
     }
 
+    function expandRosterCapacity() {
+      const g = state.game;
+      if (!g.artistManager) g.artistManager = {artistRosterCapacity: 1};
+      if (g.artistManager.artistRosterCapacity >= 5) return toast("签约池容量已达上限 5 人");
+      const cost = 160 + g.artistManager.artistRosterCapacity * 80;
+      if (g.player.money < cost) return toast(`资金不足，扩容需要 ${cost} 万`);
+      applyPlayer({money: -cost, stress: 4, networkSkill: 2});
+      g.artistManager.artistRosterCapacity += 1;
+      addLog(`扩充签约池容量至 ${g.artistManager.artistRosterCapacity}/5`);
+      saveGame();
+      renderAll();
+      toast(`签约池已扩充至 ${g.artistManager.artistRosterCapacity}/5`);
+    }
+
     function renderAll() {
+      evaluateCareerProgress();
       renderTopbar();
       renderLeft();
       renderEvent();
@@ -1152,19 +1437,38 @@
       renderFeeds();
     }
 
+    function evaluateCareerProgress() {
+      const g = state.game;
+      if (!g.artistManager) g.artistManager = {artistRosterCapacity: 1};
+      const owned = getOwned();
+      const hasThirdTier = owned.some((artist) => ["三线", "二线", "一线", "顶流明星"].includes(artist.debutStatus));
+      const hasSecondTier = owned.some((artist) => ["二线", "一线", "顶流明星"].includes(artist.debutStatus));
+      const hasTopArtist = owned.some((artist) => artist.debutStatus === "顶流明星" || artist.fame >= 900);
+      let nextCareer = "实习助理";
+      let minCapacity = 1;
+      if (owned.length >= 2 && hasThirdTier) { nextCareer = "初级经纪"; minCapacity = 2; }
+      if (hasSecondTier) { nextCareer = "资深经纪"; minCapacity = 3; }
+      if (hasTopArtist && g.resources?.some((r) => r.level === "S" && r.result === "won")) { nextCareer = "明星推手"; minCapacity = 4; }
+      if (g.player.career !== nextCareer) {
+        g.player.career = nextCareer;
+        addLog(`职业阶梯更新为「${nextCareer}」`);
+      }
+      g.artistManager.artistRosterCapacity = Math.min(5, Math.max(g.artistManager.artistRosterCapacity, minCapacity));
+    }
+
     function renderTopbar() {
       const g = state.game, p = g.player;
       $("dateText").textContent = `第 ${g.day} 天 ${timeSlots[g.slotIndex]}`;
       $("moneyText").textContent = `${p.money} 万`;
-      $("stressText").textContent = `${p.stress} / 100`;
-      $("moraleText").textContent = `${p.morale} / 100`;
-      $("networkText").textContent = `${p.network} / 100`;
-      $("influenceText").textContent = `${p.influence} / 100`;
+      $("stressText").textContent = `${p.stress} / 1000`;
+      $("moraleText").textContent = `${p.morale} / 1000`;
+      $("networkText").textContent = `${p.network} / 1000`;
+      $("influenceText").textContent = `${p.influence} / 1000`;
       $("playerTitle").textContent = p.name;
-      $("agencyTitle").textContent = `${p.agency} · ${p.career}`;
+      $("agencyTitle").textContent = `${p.age} 岁 · ${p.background} · ${p.agency} · ${p.career}`;
       const debuff = $("debuffTag");
-      debuff.textContent = p.stress > 80 ? "高压失误率↑" : p.stress > 65 ? "压力预警" : "状态稳定";
-      debuff.className = `tag ${p.stress > 65 ? "danger" : "ok"}`;
+      debuff.textContent = p.stress > 800 ? "职业倦怠" : p.stress > 650 ? "压力预警" : "状态稳定";
+      debuff.className = `tag ${p.stress > 650 ? "danger" : "ok"}`;
     }
 
     function renderLeft() {
@@ -1173,10 +1477,15 @@
         ["洞察", p.insight], ["谈判", p.negotiation], ["公关", p.pr], ["人脉网", p.networkSkill], ["法务", p.legal], ["影响力", p.influence]
       ];
       $("playerStats").innerHTML = statDefs.map(([label, value]) => `
-        <div class="stat-row"><span>${label}</span><div class="bar"><i style="--v:${value}%"></i></div><span>${stageName(value)}</span></div>
-      `).join("");
+        <div class="stat-row"><span>${label}</span><div class="bar"><i style="--v:${barPct(value)}"></i></div><span>${stageName(value)}</span></div>
+      `).join("") + `
+        <div class="mini-card" style="margin-top:12px">
+          <h3>管理结构</h3>
+          <p>签约容量 ${state.game.artistManager?.artistRosterCapacity || 1} / 5 · 隐藏资源需通过剧情或背景逐步揭示</p>
+        </div>
+      `;
       const owned = getOwned();
-      $("artistCount").textContent = `${owned.length} 人`;
+      $("artistCount").textContent = `${owned.length}/${state.game.artistManager?.artistRosterCapacity || 1} 人`;
       if (!state.selectedArtistId || !owned.some(a => a.id === state.selectedArtistId)) state.selectedArtistId = owned[0]?.id;
       $("ownedArtists").innerHTML = owned.map(a => `
         <div class="artist-card ${a.id === state.selectedArtistId ? "active" : ""}" data-artist="${a.id}">
@@ -1196,9 +1505,15 @@
     function renderEvent() {
       const e = state.currentEvent || buildIdleEvent();
       state.currentEvent = e;
+      const meta = [
+        e.scene ? `<span class="tag ok">场景：${e.scene}</span>` : "",
+        e.people ? `<span class="tag">关联：${e.people}</span>` : "",
+        e.risk ? `<span class="tag danger">风险：${e.risk}</span>` : ""
+      ].filter(Boolean).join("");
       $("eventCard").innerHTML = `
         <div class="eyebrow">${timeSlots[state.game.slotIndex]} · ${state.game.lastAction}</div>
         <h2>${e.title}</h2>
+        ${meta ? `<div class="event-meta">${meta}</div>` : ""}
         <p>${e.desc}</p>
         <div class="choice-grid">${e.choices.map((c, i) => `
           <button class="choice" data-choice="${i}"><strong>${c.title}</strong><span>${c.desc}</span></button>
@@ -1239,17 +1554,20 @@
 
     function renderArtistDetail(a) {
       if (!a) return $("workspace").innerHTML = `<div class="empty">暂无旗下艺人</div>`;
-      const stats = [["表演", a.stats.acting], ["声乐", a.stats.vocal], ["舞蹈", a.stats.dance], ["综艺", a.stats.variety], ["时尚", a.stats.fashion], ["商务", a.stats.business]];
+      const riskHint = (value) => value >= 800 ? "极高" : value >= 600 ? "偏高" : value >= 400 ? "可控" : value >= 200 ? "低位" : "安全";
+      const stats = [["颜值", a.coreStats.appearance], ["体力", a.coreStats.stamina], ["时尚感", a.coreStats.fashion], ["歌艺", a.coreStats.vocal], ["演技", a.coreStats.acting], ["情商", a.coreStats.eq]];
+      const mindStats = [["服从", a.obedience], ["野心", a.ambition], ["信任", a.trust], ["抑郁指数", a.depression]];
       $("workspace").innerHTML = `
         <div class="profile">
           <img class="avatar" src="${a.avatar}" alt="${a.name}">
-          <div><h2>${a.name} <span class="badge ${a.rating === "S" ? "gold" : ""}">${a.rating}</span></h2><div class="subtle">${a.route} · ${a.contract} · ${a.project}</div></div>
+          <div><h2>${a.name} <span class="badge ${a.rating === "S" ? "gold" : ""}">${a.rating}</span></h2><div class="subtle">${a.age} 岁 · ${a.debutStatus} · ${a.route} · ${a.contractType} · ${a.contract}</div></div>
         </div>
         <div class="grid-two">
-          <div class="mini-card"><h3>公开状态</h3><p>咖位 ${a.fame} / 健康 ${a.health} / 压力 ${a.stress} / 信任 ${a.trust}</p><p>黑料 ${a.scandal} / 粉丝黏度 ${a.fans} / 业内口碑 ${a.reputation}</p></div>
-          <div class="mini-card ${a.scandal > 60 ? "warn" : ""}"><h3>潜在风险</h3><p>${a.hiddenUnlocked ? a.risk : "需要更高信赖度或人脉解锁完整情报。当前只能看到表层迹象。"}</p><button onclick="unlockHidden('${a.id}')">尝试解锁情报</button></div>
+          <div class="mini-card"><h3>公开状态</h3><p>当前项目：${a.project}</p><p>咖位 ${a.fame} / 健康 ${a.health} / 压力 ${a.stress}</p><p>粉丝活跃：${riskHint(a.fans)} · 业内反馈：${riskHint(a.reputation)}</p></div>
+          <div class="mini-card ${a.scandal > 600 ? "warn" : ""}"><h3>有限情报</h3><p>${a.hiddenUnlocked ? `${a.risk}；黑料预警 ${riskHint(a.scandal)}，解约风险 ${riskHint(a.terminationRisk)}。` : "只看到表层迹象：团队反馈不完整。黑料值与解约风险不会直接明牌，需要更高信赖、人脉或持续接触后才能判断。"}</p><button onclick="unlockHidden('${a.id}')">尝试解锁情报</button></div>
         </div>
-        <div class="mini-card" style="margin-top:12px"><h3>核心属性</h3><div class="stat-list">${stats.map(([label, value]) => `<div class="stat-row"><span>${label}</span><div class="bar"><i style="--v:${value}%"></i></div><span>${value}</span></div>`).join("")}</div></div>
+        <div class="mini-card" style="margin-top:12px"><h3>心理与合约压力</h3><div class="stat-list">${mindStats.map(([label, value]) => `<div class="stat-row"><span>${label}</span><div class="bar ${label.includes("抑郁") ? "danger" : ""}"><i style="--v:${barPct(value)}"></i></div><span>${stageName(value)}</span></div>`).join("")}</div><p>解约风险目前处在${riskHint(a.terminationRisk)}。信任度、合约类型、竞品挖角和长期压力，都会慢慢改变 TA 留在团队里的意愿。</p></div>
+        <div class="mini-card" style="margin-top:12px"><h3>六大核心属性</h3><div class="stat-list">${stats.map(([label, value]) => `<div class="stat-row"><span>${label}</span><div class="bar"><i style="--v:${barPct(value)}"></i></div><span>${stageName(value)}</span></div>`).join("")}</div></div>
         <div class="actions" style="margin-top:12px">
           <button onclick="trainArtistById('${a.id}','acting')">表演培训</button>
           <button onclick="trainArtistById('${a.id}','variety')">综艺训练</button>
@@ -1260,14 +1578,19 @@
     }
 
     function renderResources() {
-      const artists = getOwned();
+      const artists = state.game.artists;
+      const optionLabel = (a) => `${a.name}｜${a.route}${a.owner === "player" ? "｜旗下" : "｜市场候选"}`;
+      const resourceClass = (r) => r.result === "won" ? "resource-won" : r.result === "lost" ? "resource-lost" : "";
+      const resultTag = (r) => r.result === "won" ? `<span class="tag ok">已拿下</span>` : r.result === "lost" ? `<span class="tag danger">未拿下</span>` : "";
+      const selectedAttr = (r, a) => r.applicantId === a.id ? "selected" : "";
       $("workspace").innerHTML = `
         <div class="grid-two">
           ${state.game.resources.map(r => `
-            <div class="mini-card ${r.used ? "warn" : ""}">
-              <div class="panel-title"><h3>${r.name}</h3><span class="badge ${r.level === "S" ? "gold" : ""}">${r.level}</span></div>
-              <p>${r.type} · 适配 ${r.fit} · 门槛 ${r.threshold} · 竞争 ${r.competition} · 风险 ${r.risk}</p>
-              <select id="sel_${r.id}" ${r.used ? "disabled" : ""}>${artists.map(a => `<option value="${a.id}">${a.name}｜${a.route}</option>`).join("")}</select>
+            <div class="mini-card ${resourceClass(r)}">
+              <div class="panel-title"><h3>${r.name}</h3><span>${resultTag(r)} <span class="badge ${r.level === "S" ? "gold" : ""}">${r.level}</span></span></div>
+              <p>${r.type} · ${r.slot} · 适配 ${r.fit} · 门槛 ${r.threshold} · 竞争 ${r.competition} · 风险 ${r.risk}</p>
+              <p>已知条件：${r.condition}。最终标准不会完全明牌，需结合艺人口碑、档期与竞品报价判断。</p>
+              <select id="sel_${r.id}" ${r.used ? "disabled" : ""}>${artists.map(a => `<option value="${a.id}" ${selectedAttr(r, a)}>${optionLabel(a)}</option>`).join("")}</select>
               <div class="actions" style="margin-top:10px">
                 <button ${r.used ? "disabled" : ""} onclick="applyResource(document.getElementById('sel_${r.id}').value,'${r.id}',false)">常规申请</button>
                 <button ${r.used ? "disabled" : ""} onclick="applyResource(document.getElementById('sel_${r.id}').value,'${r.id}',true)">强势竞价</button>
@@ -1300,15 +1623,22 @@
 
     function renderMarket() {
       const market = state.game.artists.filter(a => a.owner !== "player");
+      const capacity = state.game.artistManager?.artistRosterCapacity || 1;
+      const ownedCount = getOwned().length;
       $("workspace").innerHTML = `
+        <div class="mini-card" style="margin-bottom:12px">
+          <div class="panel-title"><h3>签约池容量</h3><span class="tag ${ownedCount >= capacity ? "danger" : "ok"}">${ownedCount}/${capacity} 人</span></div>
+          <p>结构规则：签约池初始 1 人，上限 5 人。超出容量时禁止新增签约，扩容会消耗资金并增加短期压力。</p>
+          <button onclick="expandRosterCapacity()" ${capacity >= 5 ? "disabled" : ""}>扩充签约池</button>
+        </div>
         <div class="grid-two">
           ${market.map(a => `
             <div class="mini-card">
               <div class="profile" style="grid-template-columns:54px 1fr">
-                <img class="avatar" style="width:54px;height:54px;border-radius:15px" src="${a.avatar}" alt="${a.name}">
+                <img class="artist-portrait" src="${a.avatar}" alt="${a.name}">
                 <div><h3>${a.name} <span class="badge ${a.rating === "S" ? "gold" : ""}">${a.rating}</span></h3><div class="subtle">${a.route} · ${a.owner ? rivalName(a.owner) : "自由艺人"}</div></div>
               </div>
-              <p>咖位 ${a.fame} / 口碑 ${a.reputation} / 潜在风险：${state.game.player.network > 70 ? a.risk : "情报不足"}</p>
+              <p>咖位 ${a.fame} / 口碑 ${stageName(a.reputation)} / 潜在风险：${state.game.player.network > 700 ? a.risk : "情报不足"}</p>
               <button onclick="signArtist('${a.id}')">签约谈判</button>
             </div>
           `).join("")}
@@ -1319,8 +1649,8 @@
     function renderFeeds() {
       const g = state.game;
       const risk = riskLevel();
-      $("riskBadge").textContent = risk > 70 ? "高风险" : risk > 45 ? "中风险" : "低风险";
-      $("riskBadge").className = `tag ${risk > 70 ? "danger" : risk > 45 ? "hot" : "ok"}`;
+      $("riskBadge").textContent = risk > 700 ? "高风险" : risk > 450 ? "中风险" : "低风险";
+      $("riskBadge").className = `tag ${risk > 700 ? "danger" : risk > 450 ? "hot" : "ok"}`;
       $("newsFeed").innerHTML = g.news.slice(0, 8).map((n, i) => `<div class="ticker-item"><span class="tag ${i === 0 ? "hot" : ""}">热搜</span> ${n}</div>`).join("");
       $("rivalFeed").innerHTML = g.rivalNews.slice(0, 8).map(n => `<div class="ticker-item">${n}</div>`).join("");
       $("logFeed").innerHTML = g.logs.slice(0, 12).map(l => `<div class="log-entry">${l}</div>`).join("");
@@ -1334,7 +1664,7 @@
       const a = state.game.artists.find(x => x.id === id);
       if (!a) return;
       const p = state.game.player;
-      if (a.trust + p.network + p.insight > 145) {
+      if (a.trust + p.network + p.insight > 1450) {
         a.hiddenUnlocked = true;
         addLog(`解锁 ${a.name} 的潜在风险情报：${a.risk}`);
         toast("情报已解锁");
@@ -1382,7 +1712,8 @@
       ev.preventDefault();
       const name = $("playerName").value.trim() || "新锐经纪人";
       const agency = $("agencyName").value.trim() || "无名工作室";
-      enterGame(createGame(name, agency, $("stylePick").value));
+      const age = clamp(Number($("playerAge").value) || 26, 20, 35);
+      enterGame(createGame(name, agency, age, $("stylePick").value));
     });
 
     $("continueBtn").addEventListener("click", () => {
@@ -1419,6 +1750,7 @@
     window.applyResource = applyResource;
     window.handleCrisis = handleCrisis;
     window.signArtist = signArtist;
+    window.expandRosterCapacity = expandRosterCapacity;
     window.unlockHidden = unlockHidden;
     window.closeModal = closeModal;
   </script>
